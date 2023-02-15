@@ -1,69 +1,56 @@
 package app
 
 import (
+	"github.com/gorilla/mux"
 	"io"
+	"math/rand"
 	"net/http"
 	"strconv"
 )
 
-var cache map[string]string
+const URLPrefix = "http://localhost:8080/"
 
-func init() {
-	cache = make(map[string]string)
+type AllURL struct {
+	ID       string `json:"id"`
+	LongURL  string `json:"longURL"`
+	ShortURL string `json:"shortURL"`
 }
 
-func check(longUrl string) int {
-	resp, err := http.Get(longUrl)
-	if err != nil {
-		return 404
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return 400
-	}
-	return 200
-}
+var (
+	urls []AllURL
+)
 
-func MyShortUrl(longUrl string) string {
-	newId := "/new" + strconv.Itoa(len(cache)+1) + "/"
-	shortUrl := "http://localhost:8080" + newId
-	cache[newId] = longUrl
-	return shortUrl
+func ShortenLinkHander(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
 
-}
-
-func Abbrevurl(w http.ResponseWriter, r *http.Request) {
-	cache["/new1/"] = "https://vk.com"
-	switch r.Method {
-	case http.MethodPost:
-		longUrlByte, _ := io.ReadAll(r.Body)
-		longUrl := string(longUrlByte)
-
-		status := check(longUrl)
-		if status != 200 {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Incorrect URL"))
-			return
-		}
-		shortUrl := MyShortUrl(longUrl)
-		//w.Header().Add("Location", longUrl)
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(shortUrl))
-		//fmt.Fprintln(w, 201, cache[longUrl].shortUrl)
-	case http.MethodGet:
-
-		newId := r.URL.Path
-		//shortUrl := string(w) + newId
-		if longUrl, ok := cache[newId]; ok {
-			w.Header().Set("Location", longUrl)
-			//w.Header().Add("Location", longUrl)
-			w.WriteHeader(http.StatusTemporaryRedirect)
-			w.Write([]byte(longUrl))
-			return
-		}
-		//longUrl := cache[newId]
-		//w.Header().Set("Pir", longUrl)
+	var url AllURL
+	defer r.Body.Close()
+	longURLByte, err := io.ReadAll(r.Body)
+	if len(longURLByte) == 0 || err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Short URL not in memory"))
+		w.Write([]byte("Incorrect URL"))
 	}
+	longURL := string(longURLByte)
+
+	w.WriteHeader(http.StatusCreated)
+	url.LongURL = longURL
+	url.ID = strconv.Itoa(rand.Intn(1000000))
+	url.ShortURL = URLPrefix + url.ID
+	urls = append(urls, url)
+	w.Write([]byte(url.ShortURL))
+}
+
+func GetShortenHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	newID := mux.Vars(r)
+
+	for _, val := range urls {
+		if val.ID == newID["id"] {
+			w.Header().Set("Location", val.LongURL)
+			w.WriteHeader(http.StatusTemporaryRedirect)
+		}
+	}
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte("Short URL not in memory"))
 }
