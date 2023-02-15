@@ -3,7 +3,6 @@ package app
 import (
 	"github.com/gorilla/mux"
 	"io"
-	"math/rand"
 	"net/http"
 	"strconv"
 )
@@ -17,8 +16,14 @@ type AllURL struct {
 }
 
 var (
-	urls []AllURL
+	urls  []AllURL
+	index int
 )
+
+func IndexID(index *int) int {
+	*index++
+	return *index
+}
 
 func ShortenLinkHander(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
@@ -26,15 +31,23 @@ func ShortenLinkHander(w http.ResponseWriter, r *http.Request) {
 	var url AllURL
 	defer r.Body.Close()
 	longURLByte, err := io.ReadAll(r.Body)
-	if len(longURLByte) == 0 || err != nil {
+	if err != nil || len(longURLByte) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Incorrect URL"))
+		return
 	}
 	longURL := string(longURLByte)
+	for _, val := range urls {
+		if val.LongURL == longURL {
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(val.ShortURL))
+			return
+		}
+	}
 
 	w.WriteHeader(http.StatusCreated)
+	url.ID = "new" + strconv.Itoa(IndexID(&index))
 	url.LongURL = longURL
-	url.ID = strconv.Itoa(rand.Intn(1000000))
 	url.ShortURL = URLPrefix + url.ID
 	urls = append(urls, url)
 	w.Write([]byte(url.ShortURL))

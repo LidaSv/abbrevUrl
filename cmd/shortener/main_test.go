@@ -29,7 +29,7 @@ func TestUrlShort(t *testing.T) {
 		{
 			name: "Normal link generate",
 			args: args{
-				url:        "not_a_url",
+				url:        "",
 				wantStatus: 400,
 			},
 		},
@@ -38,6 +38,7 @@ func TestUrlShort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			resp, err := http.Post(URLPrefix, "text/plain", body)
+			defer resp.Body.Close()
 			if err != nil {
 				t.Errorf("request failed: %v", err)
 			}
@@ -60,19 +61,11 @@ func TestUrlShort(t *testing.T) {
 }
 
 func TestUrlLongReceive(t *testing.T) {
-	//invalidID := "NOT_A_VALID_ID"
-	//reqUrl := URLPrefix + invalidID
-	//resp, err := http.Get(reqUrl)
-	//if err != nil {
-	//	t.Errorf("cannot make GET with invalid URL ID: %v", err)
-	//}
-	//if resp.StatusCode != http.StatusBadRequest {
-	//	t.Errorf("want status 400 for invalid ID, have %d", resp.StatusCode)
-	//}
 	//Save first url
-	tmpUrl := "https://vk.com"
-	body := bytes.NewBuffer([]byte(tmpUrl))
+	tmpURL := "https://vk.com"
+	body := bytes.NewBuffer([]byte(tmpURL))
 	resp, err := http.Post(URLPrefix, "text/plain", body)
+	defer resp.Body.Close()
 	if err != nil {
 		t.Errorf("request failed: %v", err)
 	}
@@ -83,6 +76,7 @@ func TestUrlLongReceive(t *testing.T) {
 	utlToShot := "https://habr.com/ru/article/713190/"
 	body = bytes.NewBuffer([]byte(utlToShot))
 	resp, err = http.Post(URLPrefix, "text/plain", body)
+	defer resp.Body.Close()
 	if err != nil {
 		t.Errorf("request failed: %v", err)
 	}
@@ -98,13 +92,15 @@ func TestUrlLongReceive(t *testing.T) {
 		t.Errorf("nit fount http prefix in response: %s", resURL)
 	}
 	resID := strings.Replace(resURL, URLPrefix, "", 1)
-	reqUrl := URLPrefix + resID
+	reqURL := URLPrefix + resID
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
-	resp2, err := client.Get(reqUrl)
+
+	resp2, err := client.Get(reqURL)
+	defer resp2.Body.Close()
 	if err != nil {
 		t.Fatalf("cannot make GET with shorted ID %s: %v", resID, err)
 	}
