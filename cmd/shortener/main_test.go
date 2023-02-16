@@ -38,16 +38,18 @@ func TestUrlShort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			resp, err := http.Post(URLPrefix, "text/plain", body)
-			defer resp.Body.Close()
+			if resp != nil {
+				defer resp.Body.Close()
+			}
 			if err != nil {
-				t.Errorf("request failed: %v", err)
+				t.Fatalf("request failed: %v", err)
 			}
 			if resp.StatusCode != tt.args.wantStatus {
 				t.Errorf("want status %d, have %d", tt.args.wantStatus, resp.StatusCode)
 			}
 			resData, err := io.ReadAll(resp.Body)
 			if err != nil {
-				t.Errorf("cannot read response body")
+				t.Fatalf("cannot read response body")
 			}
 			if resp.StatusCode != http.StatusBadRequest {
 				resURL := string(resData)
@@ -64,28 +66,33 @@ func TestUrlLongReceive(t *testing.T) {
 	//Save first url
 	tmpURL := "https://vk.com"
 	body := bytes.NewBuffer([]byte(tmpURL))
-	resp, err := http.Post(URLPrefix, "text/plain", body)
-	defer resp.Body.Close()
+	resp1, err := http.Post(URLPrefix, "text/plain", body)
+	if resp1 != nil {
+		defer resp1.Body.Close()
+	}
 	if err != nil {
-		t.Errorf("request failed: %v", err)
+		t.Fatalf("request failed: %v", err)
 	}
-	if resp.StatusCode != http.StatusCreated {
-		t.Errorf("want status 201, have %d", resp.StatusCode)
+	if resp1.StatusCode != http.StatusCreated {
+		t.Errorf("want status 201, have %d", resp1.StatusCode)
 	}
+
 	// Save URL we want ro retrieve
 	utlToShot := "https://habr.com/ru/article/713190/"
 	body = bytes.NewBuffer([]byte(utlToShot))
-	resp, err = http.Post(URLPrefix, "text/plain", body)
-	defer resp.Body.Close()
-	if err != nil {
-		t.Errorf("request failed: %v", err)
+	resp2, err := http.Post(URLPrefix, "text/plain", body)
+	if resp2 != nil {
+		defer resp2.Body.Close()
 	}
-	if resp.StatusCode != http.StatusCreated {
-		t.Errorf("want status 201, have %d", resp.StatusCode)
-	}
-	resData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("cannot read response body")
+		t.Fatalf("request failed: %v", err)
+	}
+	if resp2.StatusCode != http.StatusCreated {
+		t.Errorf("want status 201, have %d", resp2.StatusCode)
+	}
+	resData, err := io.ReadAll(resp2.Body)
+	if err != nil {
+		t.Fatalf("cannot read response body")
 	}
 	resURL := string(resData)
 	if !strings.HasPrefix(resURL, URLPrefix) {
@@ -99,15 +106,17 @@ func TestUrlLongReceive(t *testing.T) {
 		},
 	}
 
-	resp2, err := client.Get(reqURL)
-	defer resp2.Body.Close()
+	resp3, err := client.Get(reqURL)
+	if resp3 != nil {
+		defer resp3.Body.Close()
+	}
 	if err != nil {
 		t.Fatalf("cannot make GET with shorted ID %s: %v", resID, err)
 	}
-	if resp2.StatusCode != http.StatusTemporaryRedirect {
-		t.Errorf("want status 307 for invalid ID, have %d", resp.StatusCode)
+	if resp3.StatusCode != http.StatusTemporaryRedirect {
+		t.Errorf("want status 307 for invalid ID, have %d", resp3.StatusCode)
 	}
-	locHeader := resp2.Header.Get("Location")
+	locHeader := resp3.Header.Get("Location")
 	if locHeader != utlToShot {
 		t.Errorf("invalid shorted URL received %s, want %s", locHeader, utlToShot)
 	}
