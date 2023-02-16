@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -42,7 +43,7 @@ func TestUrlShort(t *testing.T) {
 				defer resp.Body.Close()
 			}
 			if err != nil {
-				t.Fatalf("request failed: %v", err)
+				log.Fatal(err)
 			}
 			if resp.StatusCode != tt.args.wantStatus {
 				t.Errorf("want status %d, have %d", tt.args.wantStatus, resp.StatusCode)
@@ -71,7 +72,7 @@ func TestUrlLongReceive(t *testing.T) {
 		defer resp1.Body.Close()
 	}
 	if err != nil {
-		t.Fatalf("request failed: %v", err)
+		log.Fatal(err)
 	}
 	if resp1.StatusCode != http.StatusCreated {
 		t.Errorf("want status 201, have %d", resp1.StatusCode)
