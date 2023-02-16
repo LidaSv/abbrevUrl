@@ -2,15 +2,15 @@ package main
 
 import (
 	"abbrevUrl/internal/app"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 )
 
 func main() {
-	router := mux.NewRouter()
+	r := chi.NewRouter()
 
-	router.HandleFunc("/", app.ShortenLinkHander).Methods("POST")
-	router.HandleFunc("/{id:[0-9a-z]+}", app.GetShortenHandler).Methods("GET")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	r.Post("/", app.ShortenLinkHander)
+	r.Get("/{id}", app.GetShortenHandler)
+	log.Fatal(http.ListenAndServe(":8080", r))
 }

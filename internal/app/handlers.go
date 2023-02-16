@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"strconv"
@@ -54,12 +54,16 @@ func ShortenLinkHander(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetShortenHandler(w http.ResponseWriter, r *http.Request) {
+
 	w.Header().Set("Content-Type", "application/json")
 
-	newID := mux.Vars(r)
-
+	newID := chi.URLParam(r, "id")
+	if newID == "" {
+		http.Error(w, "ID param is missed", http.StatusBadRequest)
+		return
+	}
 	for _, val := range urls {
-		if val.ID == newID["id"] {
+		if val.ID == newID {
 			w.Header().Set("Location", val.LongURL)
 			w.WriteHeader(http.StatusTemporaryRedirect)
 		}
