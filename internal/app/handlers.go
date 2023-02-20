@@ -38,8 +38,9 @@ func ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	longURLCut := strings.Replace(strings.Replace(longURL, "www.", "", -1), "https://", "", -1)
-
+	longURLCut := strings.Replace(longURL, "https://", "", -1)
+	longURLCut = strings.Replace(longURLCut, "http://", "", -1)
+	longURLCut = strings.Replace(longURLCut, "www.", "", -1)
 	domenCut := strings.Split(longURLCut, ".")[0]
 	var newID string
 	if val, ok := storage.CacheDomen[domenCut]; ok {
