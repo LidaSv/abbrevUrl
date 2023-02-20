@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 )
 
 func TestUrlShort(t *testing.T) {
@@ -23,23 +25,21 @@ func TestUrlShort(t *testing.T) {
 			args: args{
 				url:        "https://github.com/go-resty/resty",
 				wantStatus: 201,
-				wantURL:    URLPrefix + "new1",
 			},
 		},
 		{
 			name: "Normal link generate #2",
 			args: args{
-				url:        "",
-				wantStatus: 400,
-				wantURL:    "",
+				url:        "https://vk.com",
+				wantStatus: 201,
 			},
 		},
 		{
-			name: "Normal link generate #3",
+			name: "Not normal link generate #1",
 			args: args{
-				url:        "https://vk.com",
-				wantStatus: 201,
-				wantURL:    URLPrefix + "new2",
+				url:        "",
+				wantStatus: 400,
+				wantURL:    "Incorrect URL",
 			},
 		},
 	}
@@ -48,7 +48,7 @@ func TestUrlShort(t *testing.T) {
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/", body)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(ShortenLinkHander)
+			h := http.HandlerFunc(ShortenLinkHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 
@@ -66,9 +66,16 @@ func TestUrlShort(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(tt.args.url) > 0 {
+
+			now := time.Now()
+			newID := strconv.FormatInt(now.Unix(), 16)
+			if len(tt.args.url) == 0 {
 				if string(resBody) != tt.args.wantURL {
 					t.Errorf("Expected body %s, got %s", tt.args.wantURL, w.Body.String())
+				}
+			} else {
+				if string(resBody) != URLPrefix+newID {
+					t.Errorf("Expected body %s, got %s", URLPrefix+newID, w.Body.String())
 				}
 			}
 		})
