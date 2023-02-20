@@ -5,9 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
-	"time"
 )
 
 func TestUrlShort(t *testing.T) {
@@ -25,6 +23,7 @@ func TestUrlShort(t *testing.T) {
 			args: args{
 				url:        "https://github.com/go-resty/resty",
 				wantStatus: 201,
+				wantURL:    URLPrefix + "github1",
 			},
 		},
 		{
@@ -32,6 +31,7 @@ func TestUrlShort(t *testing.T) {
 			args: args{
 				url:        "https://vk.com",
 				wantStatus: 201,
+				wantURL:    URLPrefix + "vk1",
 			},
 		},
 		{
@@ -67,15 +67,13 @@ func TestUrlShort(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			now := time.Now()
-			newID := strconv.FormatInt(now.Unix(), 16)
 			if len(tt.args.url) == 0 {
 				if string(resBody) != tt.args.wantURL {
 					t.Errorf("Expected body %s, got %s", tt.args.wantURL, w.Body.String())
 				}
 			} else {
-				if string(resBody) != URLPrefix+newID {
-					t.Errorf("Expected body %s, got %s", URLPrefix+newID, w.Body.String())
+				if string(resBody) != tt.args.wantURL {
+					t.Errorf("Expected body %s, got %s", tt.args.wantURL, w.Body.String())
 				}
 			}
 		})
