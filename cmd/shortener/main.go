@@ -1,6 +1,8 @@
 package main
 
-import "abbrevUrl/cmd/server"
+import (
+	"abbrevUrl/internal/server"
+)
 
 func main() {
 	server.AddServer()

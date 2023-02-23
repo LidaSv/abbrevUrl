@@ -3,8 +3,6 @@ package app
 import (
 	"io"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -17,42 +15,26 @@ const (
 	typeLocation    = "Location"
 	typeContentType = "Content-Type"
 	bodyContentType = "text/plain"
-	firstID         = "1"
+)
+
+var (
+	MyInter storage.MyInter
+	MyStruc *storage.MyStruc
 )
 
 func ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentType)
+	MyInter = MyStruc
 
+	defer r.Body.Close()
 	longURLByte, err := io.ReadAll(r.Body)
 	if err != nil || len(longURLByte) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Incorrect URL"))
 		return
 	}
-	defer r.Body.Close()
-	longURL := string(longURLByte)
 
-	if value, ok := storage.CacheLongURL[longURL]; ok {
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(URLPrefix + value))
-		return
-	}
-
-	longURLCut := strings.Replace(longURL, "https://", "", -1)
-	longURLCut = strings.Replace(longURLCut, "http://", "", -1)
-	longURLCut = strings.Replace(longURLCut, "www.", "", -1)
-	domenCut := strings.Split(longURLCut, ".")[0]
-	var newID string
-	if val, ok := storage.CacheDomen[domenCut]; ok {
-		newID = domenCut + strconv.Itoa(val+1)
-		storage.CacheDomen[domenCut] = val + 1
-	} else {
-		newID = domenCut + firstID
-		storage.CacheDomen[domenCut] = 1
-	}
-
-	storage.CacheNewID[newID] = longURL
-	storage.CacheLongURL[longURL] = newID
+	newID := MyInter.HaveLongURL(string(longURLByte))
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(URLPrefix + newID))
@@ -60,6 +42,7 @@ func ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 func GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentType)
+	MyInter = MyStruc
 
 	newID := chi.URLParam(r, paramURL)
 
@@ -68,12 +51,9 @@ func GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if value, ok := storage.CacheNewID[newID]; ok {
-		w.Header().Set(typeLocation, value)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-		return
-	}
+	longURL, status := MyInter.HaveShortURL(newID)
 
-	w.WriteHeader(http.StatusBadRequest)
-	w.Write([]byte("Short URL not in memory"))
+	w.Header().Set(typeLocation, longURL)
+	w.WriteHeader(status)
+	w.Write([]byte(longURL))
 }

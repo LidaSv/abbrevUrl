@@ -1,13 +1,55 @@
 package storage
 
+import (
+	"math/rand"
+	"net/http"
+	"time"
+)
+
 var (
-	CacheNewID   map[string]string // cache map[newID]longURL
 	CacheLongURL map[string]string // cache map[longURL]newID
-	CacheDomen   map[string]int    // cache map[domen]id
 )
 
 func init() {
-	CacheNewID = make(map[string]string)
 	CacheLongURL = make(map[string]string)
-	CacheDomen = make(map[string]int)
+}
+
+var (
+	charset = "abcdefghijklmnopqrstuvwxyz" +
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+)
+
+type MyInter interface {
+	HaveLongURL(string) string
+	HaveShortURL(string) (string, int)
+}
+
+type MyStruc struct{}
+
+func randSeq() string {
+	rand.Seed(time.Now().UnixNano())
+	newID := make([]byte, 7)
+	for i := range newID {
+		newID[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(newID)
+}
+
+func (t *MyStruc) HaveLongURL(longURL string) string {
+
+	if val, ok := CacheLongURL[longURL]; ok {
+		return val
+	}
+	newID := randSeq()
+	CacheLongURL[longURL] = newID
+	return newID
+}
+
+func (t *MyStruc) HaveShortURL(u string) (string, int) {
+	for key, val := range CacheLongURL {
+		if u == val {
+			return key, http.StatusTemporaryRedirect
+		}
+	}
+	return "Short URL not in memory", http.StatusBadRequest
 }

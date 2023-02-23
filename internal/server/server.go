@@ -10,15 +10,13 @@ import (
 )
 
 const (
-	port     = ":8080"
-	mainURL  = "/"
-	paramURL = "/{id}"
+	port = ":8080"
 )
 
 func AddServer() {
 	r := chi.NewRouter()
 
-	r.Post(mainURL, app.ShortenLinkHandler)
-	r.Get(paramURL, app.GetShortenHandler)
+	r.Post("/", app.ShortenLinkHandler)
+	r.Get("/{id}", app.GetShortenHandler)
 	log.Fatal(http.ListenAndServe(port, r))
 }

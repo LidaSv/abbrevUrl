@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,7 +22,6 @@ func TestUrlShort(t *testing.T) {
 			args: args{
 				url:        "https://github.com/go-resty/resty",
 				wantStatus: 201,
-				wantURL:    URLPrefix + "github1",
 			},
 		},
 		{
@@ -31,7 +29,6 @@ func TestUrlShort(t *testing.T) {
 			args: args{
 				url:        "https://vk.com",
 				wantStatus: 201,
-				wantURL:    URLPrefix + "vk1",
 			},
 		},
 		{
@@ -39,7 +36,6 @@ func TestUrlShort(t *testing.T) {
 			args: args{
 				url:        "",
 				wantStatus: 400,
-				wantURL:    "Incorrect URL",
 			},
 		},
 	}
@@ -59,21 +55,6 @@ func TestUrlShort(t *testing.T) {
 			} else {
 				if res.StatusCode != http.StatusCreated {
 					t.Errorf("want status 201, have %d", w.Code)
-				}
-			}
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if len(tt.args.url) == 0 {
-				if string(resBody) != tt.args.wantURL {
-					t.Errorf("Expected body %s, got %s", tt.args.wantURL, w.Body.String())
-				}
-			} else {
-				if string(resBody) != tt.args.wantURL {
-					t.Errorf("Expected body %s, got %s", tt.args.wantURL, w.Body.String())
 				}
 			}
 		})
