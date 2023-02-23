@@ -47,6 +47,7 @@ func TestUrlShort(t *testing.T) {
 			h := http.HandlerFunc(ShortenLinkHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
+			defer res.Body.Close()
 
 			if len(tt.args.url) == 0 {
 				if res.StatusCode != http.StatusBadRequest {
