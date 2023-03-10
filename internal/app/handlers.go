@@ -29,7 +29,7 @@ func (s *Server) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	longURL := string(longURLByte)
 
-	MyUrl := storage.CacheURL{LongUrl: longURL}
+	MyUrl := storage.CacheURL{LongURL: longURL}
 	shortURL := MyUrl.HaveLongURL()
 
 	w.WriteHeader(http.StatusCreated)
