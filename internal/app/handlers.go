@@ -29,8 +29,8 @@ func (s *Server) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	longURL := string(longURLByte)
 
-	MyUrl := storage.CacheURL{LongURL: longURL}
-	shortURL := MyUrl.HaveLongURL()
+	CacheURL := storage.CacheURL{LongURL: longURL}
+	shortURL := CacheURL.HaveLongURL()
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
@@ -45,8 +45,8 @@ func (s *Server) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ID param is missed", http.StatusBadRequest)
 		return
 	}
-	MyUrl := storage.CacheURL{ID: newID}
-	longURL := MyUrl.HaveShortURL()
+	CacheURL := storage.CacheURL{ID: newID}
+	longURL := CacheURL.HaveShortURL()
 
 	if longURL == "Short URL not in memory" {
 		w.Header().Set(typeLocation, longURL)
