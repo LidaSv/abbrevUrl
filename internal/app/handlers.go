@@ -15,7 +15,7 @@ const (
 	bodyContentType = "text/plain"
 )
 
-type Server storage.MyURL
+type Server storage.CacheURL
 
 func (s *Server) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentType)
@@ -29,7 +29,7 @@ func (s *Server) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	longURL := string(longURLByte)
 
-	MyUrl := storage.MyURL{LongUrl: longURL}
+	MyUrl := storage.CacheURL{LongUrl: longURL}
 	shortURL := MyUrl.HaveLongURL()
 
 	w.WriteHeader(http.StatusCreated)
@@ -45,7 +45,7 @@ func (s *Server) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ID param is missed", http.StatusBadRequest)
 		return
 	}
-	MyUrl := storage.MyURL{ID: newID}
+	MyUrl := storage.CacheURL{ID: newID}
 	longURL := MyUrl.HaveShortURL()
 
 	if longURL == "Short URL not in memory" {
