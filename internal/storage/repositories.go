@@ -14,15 +14,15 @@ type MyInter interface {
 	HaveShortURL(string) string
 }
 
-type MyUrl struct {
+type MyURL struct {
 	ID       string `json:"id"`
 	LongUrl  string `json:"longUrl"`
 	ShortUrl string `json:"shortUrl"`
 }
 
-var urls = map[string]MyUrl{}
+var urls = map[string]MyURL{}
 
-func (l *MyUrl) randSeq(longURL string) string {
+func (l *MyURL) randSeq(longURL string) string {
 
 	newURL := longURL
 
@@ -37,8 +37,8 @@ func (l *MyUrl) randSeq(longURL string) string {
 	return string(newID)
 }
 
-func (l *MyUrl) HaveLongURL() string {
-	var appURL MyUrl
+func (l *MyURL) HaveLongURL() string {
+	var appURL MyURL
 
 	if val, ok := urls[l.LongUrl]; ok {
 		return val.ShortUrl
@@ -60,7 +60,7 @@ func (l *MyUrl) HaveLongURL() string {
 
 }
 
-func (l *MyUrl) HaveShortURL() string {
+func (l *MyURL) HaveShortURL() string {
 	if val, ok := urls[l.ID]; ok {
 		return val.LongUrl
 	}
