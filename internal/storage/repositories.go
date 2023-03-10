@@ -2,54 +2,67 @@ package storage
 
 import (
 	"math/rand"
-	"net/http"
-	"time"
+	"strings"
 )
 
-var (
-	CacheLongURL map[string]string // cache map[longURL]newID
-)
-
-func init() {
-	CacheLongURL = make(map[string]string)
-}
-
-var (
-	charset = "abcdefghijklmnopqrstuvwxyz" +
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const (
+	URLPrefix = "http://localhost:8080/"
 )
 
 type MyInter interface {
-	HaveLongURL(string) string
-	HaveShortURL(string) (string, int)
+	HaveLongURL() string
+	HaveShortURL(string) string
 }
 
-type MyStruc struct{}
+type MyUrl struct {
+	ID       string `json:"id"`
+	LongUrl  string `json:"longUrl"`
+	ShortUrl string `json:"shortUrl"`
+}
 
-func randSeq() string {
-	rand.Seed(time.Now().UnixNano())
+var urls = map[string]MyUrl{}
+
+func (l *MyUrl) randSeq(longURL string) string {
+
+	newURL := longURL
+
 	newID := make([]byte, 7)
 	for i := range newID {
-		newID[i] = charset[rand.Intn(len(charset))]
+		newID[i] = newURL[rand.Intn(len(newURL))]
+	}
+
+	if _, ok := urls[l.LongUrl]; ok {
+		l.randSeq(longURL)
 	}
 	return string(newID)
 }
 
-func (t *MyStruc) HaveLongURL(longURL string) string {
+func (l *MyUrl) HaveLongURL() string {
+	var appURL MyUrl
 
-	if val, ok := CacheLongURL[longURL]; ok {
-		return val
+	if val, ok := urls[l.LongUrl]; ok {
+		return val.ShortUrl
 	}
-	newID := randSeq()
-	CacheLongURL[longURL] = newID
-	return newID
+
+	//Сокращение URL
+	replacer := strings.NewReplacer("https://", "", "/", "", "http://", "", "www.", "", ".", "")
+	repl := replacer.Replace(l.LongUrl)
+	newID := l.randSeq(repl)
+
+	appURL.ID = newID
+	appURL.LongUrl = l.LongUrl
+	appURL.ShortUrl = URLPrefix + newID
+
+	urls[l.LongUrl] = appURL
+	urls[appURL.ID] = appURL
+
+	return appURL.ShortUrl
+
 }
 
-func (t *MyStruc) HaveShortURL(u string) (string, int) {
-	for key, val := range CacheLongURL {
-		if u == val {
-			return key, http.StatusTemporaryRedirect
-		}
+func (l *MyUrl) HaveShortURL() string {
+	if val, ok := urls[l.ID]; ok {
+		return val.LongUrl
 	}
-	return "Short URL not in memory", http.StatusBadRequest
+	return "Short URL not in memory"
 }

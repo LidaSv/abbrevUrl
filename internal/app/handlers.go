@@ -1,48 +1,43 @@
 package app
 
 import (
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 
 	"abbrevUrl/internal/storage"
 )
 
 const (
-	URLPrefix       = "http://localhost:8080/"
 	paramURL        = "id"
 	typeLocation    = "Location"
 	typeContentType = "Content-Type"
 	bodyContentType = "text/plain"
 )
 
-var (
-	MyInter storage.MyInter
-	MyStruc *storage.MyStruc
-)
+type Server storage.MyUrl
 
-func ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentType)
-	MyInter = MyStruc
 
-	defer r.Body.Close()
 	longURLByte, err := io.ReadAll(r.Body)
 	if err != nil || len(longURLByte) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Incorrect URL"))
 		return
 	}
+	defer r.Body.Close()
+	longURL := string(longURLByte)
 
-	newID := MyInter.HaveLongURL(string(longURLByte))
+	MyUrl := storage.MyUrl{LongUrl: longURL}
+	shortURL := MyUrl.HaveLongURL()
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(URLPrefix + newID))
+	w.Write([]byte(shortURL))
 }
 
-func GetShortenHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentType)
-	MyInter = MyStruc
 
 	newID := chi.URLParam(r, paramURL)
 
@@ -50,10 +45,16 @@ func GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ID param is missed", http.StatusBadRequest)
 		return
 	}
+	MyUrl := storage.MyUrl{ID: newID}
+	longURL := MyUrl.HaveShortURL()
 
-	longURL, status := MyInter.HaveShortURL(newID)
+	if longURL == "Short URL not in memory" {
+		w.Header().Set(typeLocation, longURL)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(longURL))
+	}
 
 	w.Header().Set(typeLocation, longURL)
-	w.WriteHeader(status)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 	w.Write([]byte(longURL))
 }

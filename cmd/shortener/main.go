@@ -2,8 +2,12 @@ package main
 
 import (
 	"abbrevUrl/internal/server"
+	"log"
 )
 
 func main() {
-	server.AddServer()
+	err := server.AddServer()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

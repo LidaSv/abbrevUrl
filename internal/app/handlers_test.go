@@ -41,10 +41,11 @@ func TestUrlShort(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			s := Server{}
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/", body)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(ShortenLinkHandler)
+			h := http.HandlerFunc(s.ShortenLinkHandler)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 			defer res.Body.Close()
