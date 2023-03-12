@@ -16,10 +16,8 @@ func AddServer() error {
 	r := chi.NewRouter()
 	s := app.Server{}
 
-	r.Route("/", func(r chi.Router) {
-		r.Post("/", s.ShortenLinkHandler)
-		r.Get("/{id}", s.GetShortenHandler)
-	})
+	r.Post("/", s.ShortenLinkHandler)
+	r.Get("/{id}", s.GetShortenHandler)
 
 	err := http.ListenAndServe(port, r)
 	return err

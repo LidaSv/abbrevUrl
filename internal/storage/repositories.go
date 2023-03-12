@@ -11,13 +11,13 @@ const (
 
 type MyInter interface {
 	HaveLongURL() string
-	HaveShortURL(string) string
+	HaveShortURL() string
 }
 
 type CacheURL struct {
-	ID       string `json:"id"`
-	LongURL  string `json:"longUrl"`
-	ShortURL string `json:"shortUrl"`
+	ID       string
+	LongURL  string
+	ShortURL string
 }
 
 var urls = map[string]CacheURL{}
@@ -51,7 +51,7 @@ func (l *CacheURL) HaveLongURL() string {
 
 	appURL.ID = newID
 	appURL.LongURL = l.LongURL
-	appURL.LongURL = URLPrefix + newID
+	appURL.ShortURL = URLPrefix + newID
 
 	urls[l.LongURL] = appURL
 	urls[appURL.ID] = appURL
