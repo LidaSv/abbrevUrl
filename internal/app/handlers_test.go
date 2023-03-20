@@ -1,6 +1,7 @@
 package app
 
 import (
+	"abbrevUrl/internal/storage"
 	"bytes"
 	"net/http"
 	"net/http/httptest"
@@ -41,7 +42,8 @@ func TestUrlShort(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := Server{}
+			st := storage.Iter()
+			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/", body)
 			w := httptest.NewRecorder()

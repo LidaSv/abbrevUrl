@@ -4,8 +4,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
-
-	"abbrevUrl/internal/storage"
 )
 
 const (
@@ -15,9 +13,20 @@ const (
 	bodyContentType = "text/plain"
 )
 
-type Server storage.CacheURL
+type Inter interface {
+	HaveLongURL(string) string
+	HaveShortURL(string) string
+}
 
-func (s *Server) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
+type Hand struct {
+	url Inter
+}
+
+func HelpHandler(url Inter) *Hand {
+	return &Hand{url: url}
+}
+
+func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentType)
 
 	longURLByte, err := io.ReadAll(r.Body)
@@ -29,14 +38,13 @@ func (s *Server) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	longURL := string(longURLByte)
 
-	CacheURL := storage.CacheURL{LongURL: longURL}
-	shortURL := CacheURL.HaveLongURL()
+	shortURL := s.url.HaveLongURL(longURL)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
 }
 
-func (s *Server) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Hand) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentType)
 
 	newID := chi.URLParam(r, paramURL)
@@ -45,8 +53,8 @@ func (s *Server) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ID param is missed", http.StatusBadRequest)
 		return
 	}
-	CacheURL := storage.CacheURL{ID: newID}
-	longURL := CacheURL.HaveShortURL()
+
+	longURL := s.url.HaveShortURL(newID)
 
 	if longURL == "Short URL not in memory" {
 		w.Header().Set(typeLocation, longURL)
