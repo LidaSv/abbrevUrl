@@ -10,22 +10,22 @@ const (
 	URLPrefix = "http://localhost:8080/"
 )
 
-type CacheURL struct {
-	ID       string
-	LongURL  string
-	ShortURL string
-}
+//type CacheURL struct {
+//	ID       string
+//	LongURL  string
+//	ShortURL string
+//}
 
-type UrlStorage struct {
+type URLStorage struct {
 	mutex sync.RWMutex
 	Urls  map[string]string
 }
 
-func Iter() *UrlStorage {
-	return &UrlStorage{Urls: make(map[string]string)}
+func Iter() *URLStorage {
+	return &URLStorage{Urls: make(map[string]string)}
 }
 
-func (u *UrlStorage) randSeq(longURL string) string {
+func (u *URLStorage) randSeq(longURL string) string {
 
 	newURL := longURL
 
@@ -44,7 +44,7 @@ func (u *UrlStorage) randSeq(longURL string) string {
 	return string(newID)
 }
 
-func (u *UrlStorage) getShortURL(longURL string) string {
+func (u *URLStorage) getShortURL(longURL string) string {
 	u.mutex.RLock()
 	val, ok := u.Urls[longURL]
 	defer u.mutex.RUnlock()
@@ -54,21 +54,20 @@ func (u *UrlStorage) getShortURL(longURL string) string {
 	return ""
 }
 
-func (u *UrlStorage) Inc(longURL, newID string) {
+func (u *URLStorage) Inc(longURL, newID string) {
 	u.mutex.Lock()
 	u.Urls[longURL] = newID
 	u.Urls[newID] = longURL
 	u.mutex.Unlock()
 }
 
-func (u *UrlStorage) HaveLongURL(longURL string) string {
-	var appURL CacheURL
+func (u *URLStorage) HaveLongURL(longURL string) string {
 
 	val := u.getShortURL(longURL)
 
 	if val != "" {
-		s := URLPrefix + val
-		return s
+		shortURL := URLPrefix + val
+		return shortURL
 	}
 
 	//Сокращение URL
@@ -76,23 +75,20 @@ func (u *UrlStorage) HaveLongURL(longURL string) string {
 	repl := replacer.Replace(longURL)
 	newID := u.randSeq(repl)
 
-	appURL.ID = newID
-	appURL.LongURL = longURL
-	appURL.ShortURL = URLPrefix + newID
-
+	shortURL := URLPrefix + newID
 	u.Inc(longURL, newID)
 
-	return appURL.ShortURL
+	return shortURL
 
 }
 
-func (u *UrlStorage) HaveShortURL(ID string) string {
+func (u *URLStorage) HaveShortURL(ID string) string {
 	u.mutex.RLock()
-	val, ok := u.Urls[ID]
+	longURL, ok := u.Urls[ID]
 	u.mutex.RUnlock()
 
 	if ok {
-		return val
+		return longURL
 	}
 	return "Short URL not in memory"
 }
