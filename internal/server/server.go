@@ -4,18 +4,19 @@ import (
 	"abbrevUrl/internal/app"
 	"abbrevUrl/internal/storage"
 	"context"
+	"errors"
 	"github.com/go-chi/chi/v5"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 )
 
 const (
 	port = ":8080"
 )
 
-func AddServer() error {
+func AddServer() {
 	r := chi.NewRouter()
 
 	st := storage.Iter()
@@ -26,25 +27,31 @@ func AddServer() error {
 		r.Get("/{id}", s.GetShortenHandler)
 	})
 
-	var srv http.Server
-
-	chErrors := make(chan struct{})
-	go func() {
-		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, os.Interrupt)
-		<-sigint
-
-		if err := srv.Shutdown(context.Background()); err != nil {
-			log.Printf("HTTP server Shutdown: %v", err)
-		}
-		close(chErrors)
-	}()
-
-	err := http.ListenAndServe(port, r)
-	if err != http.ErrServerClosed {
-		return err
+	server := http.Server{
+		Addr:              "localhost" + port,
+		Handler:           r,
+		ReadHeaderTimeout: time.Second,
 	}
 
-	<-chErrors
-	return err
+	chErrors := make(chan error)
+
+	go func() {
+		err := server.ListenAndServe()
+		if !errors.Is(err, http.ErrServerClosed) {
+			chErrors <- err
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	select {
+	case <-stop:
+		signal.Stop(stop)
+		_ = server.Shutdown(context.Background())
+	case <-chErrors:
+		_ = server.Shutdown(context.Background())
+
+	}
+
 }
