@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	paramURL        = "id"
-	typeLocation    = "Location"
-	typeContentType = "Content-Type"
-	bodyContentType = "text/plain"
+	paramURL            = "id"
+	typeLocation        = "Location"
+	typeContentType     = "Content-Type"
+	bodyContentType     = "text/plain"
+	bodyContentTypeJSON = "application/json"
 )
 
 type Inter interface {
@@ -33,7 +34,7 @@ func HelpHandler(url Inter) *Hand {
 }
 
 func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set(typeContentType, bodyContentType)
+	w.Header().Set(typeContentType, bodyContentTypeJSON)
 
 	longURLByte, err := io.ReadAll(r.Body)
 	if err != nil {
