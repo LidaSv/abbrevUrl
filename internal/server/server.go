@@ -23,6 +23,7 @@ func AddServer() {
 	s := app.HelpHandler(st)
 
 	r.Route("/", func(r chi.Router) {
+		r.Post("/api/shorten", s.ShortenJSONLinkHandler)
 		r.Post("/", s.ShortenLinkHandler)
 		r.Get("/{id}", s.GetShortenHandler)
 	})
