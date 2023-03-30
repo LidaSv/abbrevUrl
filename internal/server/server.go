@@ -5,7 +5,9 @@ import (
 	"abbrevUrl/internal/storage"
 	"context"
 	"errors"
+	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,20 +18,34 @@ const (
 	port = ":8080"
 )
 
+type Config struct {
+	ServerAddress string `env:"SERVER_ADDRESS"`
+	BaseURL       string `env:"BASE_URL"`
+}
+
 func AddServer() {
 	r := chi.NewRouter()
 
 	st := storage.Iter()
 	s := app.HelpHandler(st)
 
+	os.Setenv("SERVER_ADDRESS", "localhost"+port)
+	os.Setenv("BASE_URL", "/{id}")
+
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r.Route("/", func(r chi.Router) {
 		r.Post("/api/shorten", s.ShortenJSONLinkHandler)
 		r.Post("/", s.ShortenLinkHandler)
-		r.Get("/{id}", s.GetShortenHandler)
+		r.Get(cfg.BaseURL, s.GetShortenHandler)
 	})
 
 	server := http.Server{
-		Addr:              "localhost" + port,
+		Addr:              cfg.ServerAddress,
 		Handler:           r,
 		ReadHeaderTimeout: time.Second,
 	}
