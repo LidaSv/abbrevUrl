@@ -16,8 +16,8 @@ import (
 )
 
 type Config struct {
-	ServerAddress int    `env:"SERVER_ADDRESS"`
-	BaseURL       string `env:"BASE_URL"`
+	ServerAddress int    `env:"SERVER_ADDRESS" envDefault:"8080"`
+	BaseURL       string `env:"BASE_URL" envDefault:"/{id:[0-9a-z]+}"`
 }
 
 func AddServer() {
