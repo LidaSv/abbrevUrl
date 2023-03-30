@@ -11,15 +11,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 )
 
-const (
-	port = ":8080"
-)
-
 type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS"`
+	ServerAddress int    `env:"SERVER_ADDRESS"`
 	BaseURL       string `env:"BASE_URL"`
 }
 
@@ -28,9 +25,6 @@ func AddServer() {
 
 	st := storage.Iter()
 	s := app.HelpHandler(st)
-
-	os.Setenv("SERVER_ADDRESS", "localhost"+port)
-	os.Setenv("BASE_URL", "/{id}")
 
 	var cfg Config
 	err := env.Parse(&cfg)
@@ -45,7 +39,7 @@ func AddServer() {
 	})
 
 	server := http.Server{
-		Addr:              cfg.ServerAddress,
+		Addr:              "localhost:" + strconv.Itoa(cfg.ServerAddress),
 		Handler:           r,
 		ReadHeaderTimeout: time.Second,
 	}
