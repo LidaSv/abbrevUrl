@@ -1,14 +1,21 @@
 package storage
 
 import (
+	"github.com/caarlos0/env/v6"
+	"log"
 	"math/rand"
 	"strings"
 	"sync"
 )
 
 const (
-	URLPrefix = "http://localhost:8080/"
+	URLPrefix = "http://localhost:"
 )
+
+type Config struct {
+	//ServerAddress int    `env:"SERVER_ADDRESS" envDefault:"8080"`
+	BaseURL string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+}
 
 //type CacheURL struct {
 //	ID       string
@@ -65,8 +72,14 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 
 	val := u.getShortURL(longURL)
 
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if val != "" {
-		shortURL := URLPrefix + val
+		shortURL := cfg.BaseURL + "/" + val
 		return shortURL
 	}
 
@@ -75,7 +88,7 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 	repl := replacer.Replace(longURL)
 	newID := u.randSeq(repl)
 
-	shortURL := URLPrefix + newID
+	shortURL := cfg.BaseURL + "/" + newID
 	u.Inc(longURL, newID)
 
 	return shortURL

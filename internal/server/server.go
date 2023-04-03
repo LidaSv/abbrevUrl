@@ -16,8 +16,8 @@ import (
 )
 
 type Config struct {
-	ServerAddress int    `env:"SERVER_ADDRESS" envDefault:"8080"`
-	BaseURL       string `env:"BASE_URL" envDefault:"/{id:[0-9a-z]+}"`
+	ServerAddress int `env:"SERVER_ADDRESS" envDefault:"8080"`
+	//BaseURL       string `env:"BASE_URL" envDefault:"/{id:[0-9a-z]+}"`
 }
 
 func AddServer() {
@@ -35,7 +35,7 @@ func AddServer() {
 	r.Route("/", func(r chi.Router) {
 		r.Post("/api/shorten", s.ShortenJSONLinkHandler)
 		r.Post("/", s.ShortenLinkHandler)
-		r.Get(cfg.BaseURL, s.GetShortenHandler)
+		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
 	})
 
 	server := http.Server{
