@@ -8,20 +8,10 @@ import (
 	"sync"
 )
 
-const (
-	URLPrefix = "http://localhost:"
-)
-
 type Config struct {
-	//ServerAddress int    `env:"SERVER_ADDRESS" envDefault:"8080"`
-	BaseURL string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
 }
-
-//type CacheURL struct {
-//	ID       string
-//	LongURL  string
-//	ShortURL string
-//}
 
 type URLStorage struct {
 	mutex sync.RWMutex
@@ -78,8 +68,14 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 		log.Fatal(err)
 	}
 
+	BaseURLNew := cfg.BaseURL
+
+	if BaseURLNew[len(BaseURLNew)-1:] == "/" {
+		BaseURLNew = BaseURLNew[:len(BaseURLNew)-1]
+	}
+
 	if val != "" {
-		shortURL := cfg.BaseURL + "/" + val
+		shortURL := BaseURLNew + "/" + val
 		return shortURL
 	}
 
@@ -88,7 +84,7 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 	repl := replacer.Replace(longURL)
 	newID := u.randSeq(repl)
 
-	shortURL := cfg.BaseURL + "/" + newID
+	shortURL := BaseURLNew + "/" + newID
 	u.Inc(longURL, newID)
 
 	return shortURL

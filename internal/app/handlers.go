@@ -108,7 +108,7 @@ func (s *Hand) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set(typeLocation, longURL)
-	//http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
-	w.WriteHeader(http.StatusTemporaryRedirect)
+	http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
+	//w.WriteHeader(http.StatusTemporaryRedirect)
 	w.Write([]byte(longURL))
 }

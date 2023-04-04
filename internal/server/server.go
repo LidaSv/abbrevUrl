@@ -11,13 +11,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
+	"strings"
 	"time"
 )
 
 type Config struct {
-	ServerAddress int `env:"SERVER_ADDRESS" envDefault:"8080"`
-	//BaseURL       string `env:"BASE_URL" envDefault:"/{id:[0-9a-z]+}"`
+	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 }
 
 func AddServer() {
@@ -26,20 +26,27 @@ func AddServer() {
 	st := storage.Iter()
 	s := app.HelpHandler(st)
 
-	var cfg Config
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	r.Route("/", func(r chi.Router) {
 		r.Post("/api/shorten", s.ShortenJSONLinkHandler)
 		r.Post("/", s.ShortenLinkHandler)
 		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
 	})
 
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	replacer := strings.NewReplacer("https://", "", "http://", "")
+	ServerAdd := replacer.Replace(cfg.ServerAddress)
+
+	if ServerAdd[len(ServerAdd)-1:] == "/" {
+		ServerAdd = ServerAdd[:len(ServerAdd)-1]
+	}
+
 	server := http.Server{
-		Addr:              "localhost:" + strconv.Itoa(cfg.ServerAddress),
+		Addr:              ServerAdd,
 		Handler:           r,
 		ReadHeaderTimeout: time.Second,
 	}
@@ -60,7 +67,8 @@ func AddServer() {
 	case <-stop:
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
-	case <-chErrors:
+
+	case err = <-chErrors:
 		_ = server.Shutdown(context.Background())
 
 	}
