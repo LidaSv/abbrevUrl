@@ -67,10 +67,8 @@ func AddServer() {
 	case <-stop:
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
-
-	case err = <-chErrors:
+	case <-chErrors:
 		_ = server.Shutdown(context.Background())
 
 	}
-
 }
