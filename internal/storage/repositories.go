@@ -13,6 +13,16 @@ type Config struct {
 	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
 }
 
+//type CasheNewID struct {
+//	LongURL string
+//	NewID   string
+//}
+//
+//type CasheLongURL struct {
+//	LongURL string
+//	NewID   string
+//}
+
 type URLStorage struct {
 	mutex sync.RWMutex
 	Urls  map[string]string

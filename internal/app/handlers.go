@@ -18,6 +18,7 @@ const (
 type Inter interface {
 	HaveLongURL(string) string
 	HaveShortURL(string) string
+	Inc(string, string)
 }
 
 type Hand struct {

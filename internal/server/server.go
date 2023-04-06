@@ -16,14 +16,25 @@ import (
 )
 
 type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/Users/ldsviyazova/Desktop/GitHub/abbrevUrl/internal/storage/cache.log"`
 }
 
 func AddServer() {
 	r := chi.NewRouter()
 
 	st := storage.Iter()
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if cfg.FileStoragePath != "" {
+		fileName := cfg.FileStoragePath
+		storage.ReadCache(fileName, st)
+	}
 	s := app.HelpHandler(st)
 
 	r.Route("/", func(r chi.Router) {
@@ -31,12 +42,6 @@ func AddServer() {
 		r.Post("/", s.ShortenLinkHandler)
 		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
 	})
-
-	var cfg Config
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	replacer := strings.NewReplacer("https://", "", "http://", "")
 	ServerAdd := replacer.Replace(cfg.ServerAddress)
@@ -67,8 +72,15 @@ func AddServer() {
 	case <-stop:
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
+		if cfg.FileStoragePath != "" {
+			fileName := cfg.FileStoragePath
+			storage.WriterCache(fileName, st)
+		}
 	case <-chErrors:
 		_ = server.Shutdown(context.Background())
-
+		if cfg.FileStoragePath != "" {
+			fileName := cfg.FileStoragePath
+			storage.WriterCache(fileName, st)
+		}
 	}
 }
