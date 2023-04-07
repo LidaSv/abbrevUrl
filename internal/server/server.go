@@ -31,7 +31,7 @@ func AddServer() {
 		log.Fatal(err)
 	}
 
-	FlagServerAddress := flag.String("a", "localhost:8080", "a string")
+	FlagServerAddress := flag.String("a", "", "a string")
 	FlagFileStoragePath := flag.String("f", "", "a string")
 	flag.Parse()
 
