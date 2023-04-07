@@ -18,7 +18,7 @@ import (
 
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/Users/ldsviyazova/Desktop/GitHub/abbrevUrl/internal/storage/cache.log"`
 }
 
 func AddServer() {
@@ -36,15 +36,17 @@ func AddServer() {
 	FlagFileStoragePath := flag.String("f", "", "a string")
 	flag.Parse(os.Args[1:])
 
+	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
+
 	var fileName string
-	if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
-		if cfg.FileStoragePath != "" {
-			fileName = cfg.FileStoragePath
-		} else {
-			fileName = *FlagFileStoragePath
-		}
-		storage.ReadCache(fileName, st)
+	if exist {
+		fileName = filepath
+	} else if *FlagFileStoragePath != "" {
+		fileName = *FlagFileStoragePath
+	} else {
+		fileName = cfg.FileStoragePath
 	}
+	storage.ReadCache(fileName, st)
 
 	s := app.HelpHandler(st)
 
