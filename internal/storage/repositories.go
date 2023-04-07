@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"flag"
 	"github.com/caarlos0/env/v6"
 	"log"
 	"math/rand"
+	"os"
 	"strings"
 	"sync"
 )
@@ -78,7 +80,19 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 		log.Fatal(err)
 	}
 
-	BaseURLNew := cfg.BaseURL
+	FlagBaseURL := flag.String("b", "", "a string")
+	flag.Parse()
+
+	path, exists := os.LookupEnv("BASE_URL")
+
+	var BaseURLNew string
+	if exists {
+		BaseURLNew = path
+	} else if *FlagBaseURL != "" {
+		BaseURLNew = *FlagBaseURL
+	} else {
+		BaseURLNew = cfg.BaseURL
+	}
 
 	if BaseURLNew[len(BaseURLNew)-1:] == "/" {
 		BaseURLNew = BaseURLNew[:len(BaseURLNew)-1]

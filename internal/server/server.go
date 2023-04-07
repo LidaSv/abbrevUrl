@@ -5,6 +5,7 @@ import (
 	"abbrevUrl/internal/storage"
 	"context"
 	"errors"
+	"flag"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"log"
@@ -31,10 +32,20 @@ func AddServer() {
 		log.Fatal(err)
 	}
 
-	if cfg.FileStoragePath != "" {
-		fileName := cfg.FileStoragePath
+	FlagServerAddress := flag.String("a", "localhost:8080", "a string")
+	FlagFileStoragePath := flag.String("f", "", "a string")
+	flag.Parse()
+
+	var fileName string
+	if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
+		if cfg.FileStoragePath != "" {
+			fileName = cfg.FileStoragePath
+		} else {
+			fileName = *FlagFileStoragePath
+		}
 		storage.ReadCache(fileName, st)
 	}
+
 	s := app.HelpHandler(st)
 
 	r.Route("/", func(r chi.Router) {
@@ -43,8 +54,19 @@ func AddServer() {
 		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
 	})
 
+	path, exists := os.LookupEnv("SERVER_ADDRESS")
+
+	var serv string
+	if exists {
+		serv = path
+	} else if *FlagServerAddress != "" {
+		serv = *FlagServerAddress
+	} else {
+		serv = cfg.ServerAddress
+	}
+
 	replacer := strings.NewReplacer("https://", "", "http://", "")
-	ServerAdd := replacer.Replace(cfg.ServerAddress)
+	ServerAdd := replacer.Replace(serv)
 
 	if ServerAdd[len(ServerAdd)-1:] == "/" {
 		ServerAdd = ServerAdd[:len(ServerAdd)-1]
