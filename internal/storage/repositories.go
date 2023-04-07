@@ -1,8 +1,8 @@
 package storage
 
 import (
-	"flag"
 	"github.com/caarlos0/env/v6"
+	"github.com/spf13/pflag"
 	"log"
 	"math/rand"
 	"os"
@@ -14,16 +14,6 @@ type Config struct {
 	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
 	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
 }
-
-//type CasheNewID struct {
-//	LongURL string
-//	NewID   string
-//}
-//
-//type CasheLongURL struct {
-//	LongURL string
-//	NewID   string
-//}
 
 type URLStorage struct {
 	mutex sync.RWMutex
@@ -80,8 +70,9 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 		log.Fatal(err)
 	}
 
+	flag := pflag.FlagSet{}
 	FlagBaseURL := flag.String("b", "", "a string")
-	flag.Parse()
+	flag.Parse(os.Args[1:])
 
 	path, exists := os.LookupEnv("BASE_URL")
 

@@ -97,6 +97,8 @@ func ReadCache(fileName string, st *URLStorage) {
 		if err == io.EOF {
 			break
 		}
+		st.mutex.RLock()
 		st.Urls[readEvent.Key] = readEvent.Value
+		st.mutex.RUnlock()
 	}
 }
