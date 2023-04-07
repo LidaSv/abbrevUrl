@@ -5,9 +5,9 @@ import (
 	"abbrevUrl/internal/storage"
 	"context"
 	"errors"
-	"flag"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
+	"github.com/spf13/pflag"
 	"log"
 	"net/http"
 	"os"
@@ -31,9 +31,10 @@ func AddServer() {
 		log.Fatal(err)
 	}
 
+	flag := pflag.FlagSet{}
 	FlagServerAddress := flag.String("a", "", "a string")
 	FlagFileStoragePath := flag.String("f", "", "a string")
-	flag.Parse()
+	flag.Parse(os.Args[1:])
 
 	var fileName string
 	if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
