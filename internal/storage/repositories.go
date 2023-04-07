@@ -11,8 +11,7 @@ import (
 )
 
 type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
+	BaseURL string `env:"BASE_URL"`
 }
 
 type URLStorage struct {
@@ -71,7 +70,7 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 	}
 
 	flag := pflag.FlagSet{}
-	FlagBaseURL := flag.String("b", "", "a string")
+	FlagBaseURL := flag.String("b", "http://localhost:8080/", "a string")
 	flag.Parse(os.Args[1:])
 
 	path, exists := os.LookupEnv("BASE_URL")
@@ -79,10 +78,8 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 	var BaseURLNew string
 	if exists {
 		BaseURLNew = path
-	} else if *FlagBaseURL != "" {
-		BaseURLNew = *FlagBaseURL
 	} else {
-		BaseURLNew = cfg.BaseURL
+		BaseURLNew = *FlagBaseURL
 	}
 
 	if BaseURLNew[len(BaseURLNew)-1:] == "/" {

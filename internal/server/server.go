@@ -17,7 +17,7 @@ import (
 )
 
 type Config struct {
-	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	ServerAddress   string `env:"SERVER_ADDRESS"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
@@ -32,7 +32,7 @@ func AddServer() {
 	}
 
 	flag := pflag.FlagSet{}
-	FlagServerAddress := flag.String("a", "", "a string")
+	FlagServerAddress := flag.String("a", "localhost:8080", "a string")
 	FlagFileStoragePath := flag.String("f", "/Users/ldsviyazova/Desktop/GitHub/abbrevUrl/internal/storage/cache.log", "a string")
 	flag.Parse(os.Args[1:])
 
@@ -60,10 +60,8 @@ func AddServer() {
 	var serv string
 	if exists {
 		serv = path
-	} else if *FlagServerAddress != "" {
-		serv = *FlagServerAddress
 	} else {
-		serv = cfg.ServerAddress
+		serv = *FlagServerAddress
 	}
 
 	replacer := strings.NewReplacer("https://", "", "http://", "")
@@ -95,15 +93,9 @@ func AddServer() {
 	case <-stop:
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
-		if cfg.FileStoragePath != "" {
-			fileName := cfg.FileStoragePath
-			storage.WriterCache(fileName, st)
-		}
+		storage.WriterCache(fileName, st)
 	case <-chErrors:
 		_ = server.Shutdown(context.Background())
-		if cfg.FileStoragePath != "" {
-			fileName := cfg.FileStoragePath
-			storage.WriterCache(fileName, st)
-		}
+		storage.WriterCache(fileName, st)
 	}
 }
