@@ -39,13 +39,14 @@ func AddServer() {
 	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
 
 	var fileName string
-	if exist {
-		fileName = filepath
-	} else {
-		fileName = *FlagFileStoragePath
+	if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
+		if exist {
+			fileName = filepath
+		} else {
+			fileName = *FlagFileStoragePath
+		}
+		storage.ReadCache(fileName, st)
 	}
-
-	storage.ReadCache(fileName, st)
 
 	s := app.HelpHandler(st)
 
@@ -93,9 +94,13 @@ func AddServer() {
 	case <-stop:
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
-		storage.WriterCache(fileName, st)
+		if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
+			storage.WriterCache(fileName, st)
+		}
 	case <-chErrors:
 		_ = server.Shutdown(context.Background())
-		storage.WriterCache(fileName, st)
+		if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
+			storage.WriterCache(fileName, st)
+		}
 	}
 }
