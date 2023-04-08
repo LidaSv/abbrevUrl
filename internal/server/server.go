@@ -33,20 +33,9 @@ func AddServer() {
 
 	flag := pflag.FlagSet{}
 	FlagServerAddress := flag.String("a", cfg.ServerAddress, "a string")
-	FlagFileStoragePath := flag.String("f", "", "a string")
 	flag.Parse(os.Args[1:])
 
-	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
-
-	var fileName string
-	if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
-		if exist {
-			fileName = filepath
-		} else {
-			fileName = *FlagFileStoragePath
-		}
-		storage.ReadCache(fileName, st)
-	}
+	fileName := storage.ReadCache(st)
 
 	s := app.HelpHandler(st)
 
@@ -94,13 +83,9 @@ func AddServer() {
 	case <-stop:
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
-		if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
-			storage.WriterCache(fileName, st)
-		}
+		storage.WriterCache(fileName, st)
 	case <-chErrors:
 		_ = server.Shutdown(context.Background())
-		if cfg.FileStoragePath != "" || *FlagFileStoragePath != "" {
-			storage.WriterCache(fileName, st)
-		}
+		storage.WriterCache(fileName, st)
 	}
 }

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"github.com/spf13/pflag"
 	"io"
 	"log"
 	"os"
@@ -85,7 +86,20 @@ func WriterCache(fileName string, st *URLStorage) {
 	}
 }
 
-func ReadCache(fileName string, st *URLStorage) {
+func ReadCache(st *URLStorage) string {
+
+	flag := pflag.FlagSet{}
+	FlagFileStoragePath := flag.String("f", "./internal/storage/cache.log", "a string")
+	flag.Parse(os.Args[1:])
+
+	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
+
+	var fileName string
+	if exist {
+		fileName = filepath
+	} else {
+		fileName = *FlagFileStoragePath
+	}
 
 	consumer, err := NewConsumer(fileName)
 	if err != nil {
@@ -101,4 +115,6 @@ func ReadCache(fileName string, st *URLStorage) {
 		st.Urls[readEvent.Key] = readEvent.Value
 		st.mutex.RUnlock()
 	}
+
+	return fileName
 }
