@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"github.com/caarlos0/env/v6"
 	"github.com/spf13/pflag"
 	"io"
 	"log"
@@ -88,8 +89,14 @@ func WriterCache(fileName string, st *URLStorage) {
 
 func ReadCache(st *URLStorage) string {
 
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	flag := pflag.FlagSet{}
-	FlagFileStoragePath := flag.String("f", "internal/storage/cache.log", "a string")
+	FlagFileStoragePath := flag.String("f", cfg.FileStoragePath, "a string")
 	flag.Parse(os.Args[1:])
 
 	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")

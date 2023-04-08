@@ -11,8 +11,9 @@ import (
 )
 
 type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL       string `env:"BASE_URL"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"internal/storage/cache.log"`
+	BaseURL         string `env:"BASE_URL"`
 }
 
 type URLStorage struct {
