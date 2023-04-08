@@ -33,7 +33,7 @@ func AddServer() {
 
 	flag := pflag.FlagSet{}
 	FlagServerAddress := flag.String("a", cfg.ServerAddress, "a string")
-	FlagFileStoragePath := flag.String("f", "/Users/ldsviyazova/Desktop/GitHub/abbrevUrl/internal/storage/cache.log", "a string")
+	FlagFileStoragePath := flag.String("f", "", "a string")
 	flag.Parse(os.Args[1:])
 
 	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
