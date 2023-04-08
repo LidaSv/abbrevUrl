@@ -89,7 +89,7 @@ func WriterCache(fileName string, st *URLStorage) {
 func ReadCache(st *URLStorage) string {
 
 	flag := pflag.FlagSet{}
-	FlagFileStoragePath := flag.String("f", "https://github.com/LidaSv/abbrevUrl/blob/iter7/internal/storage/cache.log", "a string")
+	FlagFileStoragePath := flag.String("f", "internal/storage/cache.log", "a string")
 	flag.Parse(os.Args[1:])
 
 	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
