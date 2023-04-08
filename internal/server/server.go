@@ -18,7 +18,7 @@ import (
 
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"internal/storage/cache.log"`
 }
 
 func AddServer() {
@@ -33,9 +33,18 @@ func AddServer() {
 
 	flag := pflag.FlagSet{}
 	FlagServerAddress := flag.String("a", cfg.ServerAddress, "a string")
+	FlagFileStoragePath := flag.String("f", cfg.FileStoragePath, "a string")
 	flag.Parse(os.Args[1:])
 
-	fileName := storage.ReadCache(st)
+	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
+
+	var fileName string
+	if exist {
+		fileName = filepath
+	} else {
+		fileName = *FlagFileStoragePath
+	}
+	storage.ReadCache(fileName, st)
 
 	s := app.HelpHandler(st)
 
