@@ -18,7 +18,7 @@ import (
 
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"internal/storage/cache.log"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 func AddServer() {
@@ -33,7 +33,7 @@ func AddServer() {
 
 	flag := pflag.FlagSet{}
 	FlagServerAddress := flag.String("a", cfg.ServerAddress, "a string")
-	FlagFileStoragePath := flag.String("f", cfg.FileStoragePath, "a string")
+	FlagFileStoragePath := flag.String("f", os.Getenv("PWD")+"/internal/storage/cache.log", "a string")
 	flag.Parse(os.Args[1:])
 
 	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
