@@ -18,7 +18,7 @@ import (
 
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/internal/storage/cache.log"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"./internal/storage/cache.log"`
 }
 
 func AddServer() {
@@ -40,9 +40,9 @@ func AddServer() {
 
 	var fileName string
 	if exist {
-		fileName = os.Getenv("PWD") + filepath
+		fileName = filepath
 	} else {
-		fileName = os.Getenv("PWD") + *FlagFileStoragePath
+		fileName = *FlagFileStoragePath
 	}
 	storage.ReadCache(fileName, st)
 
