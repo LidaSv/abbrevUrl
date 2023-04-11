@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 type strucRW struct {
@@ -17,8 +18,33 @@ type consumer struct {
 	decoder *json.Decoder
 }
 
-func NewConsumer(filename string) (*consumer, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0777)
+func createFile(fileName string) (string, error) {
+	if string(fileName[0]) == "/" {
+		fileName = fileName[1:]
+	}
+
+	var st string
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		s := strings.Split(fileName, "/")
+
+		st = "/" + s[len(s)-1]
+		dir := strings.ReplaceAll(fileName, st, "")
+
+		err = os.MkdirAll(dir, 0777)
+		if err != nil {
+			return dir, err
+		}
+	}
+	return fileName, nil
+}
+
+func NewConsumer(fileName string) (*consumer, error) {
+	fileNewName, err := createFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.OpenFile(fileNewName, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +73,12 @@ type producer struct {
 }
 
 func NewProducer(fileName string) (*producer, error) {
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0777)
+	fileNewName, err := createFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.OpenFile(fileNewName, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		return nil, err
 	}

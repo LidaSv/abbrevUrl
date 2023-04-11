@@ -60,7 +60,7 @@ func (u *URLStorage) Inc(longURL, newID string) {
 	u.mutex.Unlock()
 }
 
-func (u *URLStorage) HaveLongURL(longURL string) string {
+func (u *URLStorage) HaveLongURL(longURL string) (string, map[string]string) {
 
 	val := u.getShortURL(longURL)
 
@@ -89,7 +89,7 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 
 	if val != "" {
 		shortURL := BaseURLNew + "/" + val
-		return shortURL
+		return shortURL, nil
 	}
 
 	//Сокращение URL
@@ -100,7 +100,7 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 	shortURL := BaseURLNew + "/" + newID
 	u.Inc(longURL, newID)
 
-	return shortURL
+	return shortURL, u.Urls
 
 }
 
