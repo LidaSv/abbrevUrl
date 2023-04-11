@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -19,23 +20,23 @@ type consumer struct {
 }
 
 func createFile(fileName string) (string, error) {
+	var fileNameNew string
 	if string(fileName[0]) == "/" {
-		fileName = fileName[1:]
+		fileNameNew = fileName[1:]
 	}
 
-	var st string
-	if _, err := os.Stat(fileName); os.IsNotExist(err) {
-		s := strings.Split(fileName, "/")
-
-		st = "/" + s[len(s)-1]
-		dir := strings.ReplaceAll(fileName, st, "")
+	if _, err := os.Stat(fileNameNew); os.IsNotExist(err) {
+		s := strings.Split(fileNameNew, "/")
+		st := "/" + s[len(s)-1]
+		dir := strings.ReplaceAll(fileNameNew, st, "")
 
 		err = os.MkdirAll(dir, 0777)
 		if err != nil {
-			return dir, err
+			return "", err
 		}
+		return fileNameNew, nil
 	}
-	return fileName, nil
+	return fileNameNew, nil
 }
 
 func NewConsumer(fileName string) (*consumer, error) {
@@ -44,8 +45,9 @@ func NewConsumer(fileName string) (*consumer, error) {
 		return nil, err
 	}
 
-	file, err := os.OpenFile(fileNewName, os.O_RDONLY|os.O_CREATE, 0777)
+	file, err := os.OpenFile(fileNewName, os.O_RDONLY|os.O_CREATE, 644)
 	if err != nil {
+		fmt.Println("jkl")
 		return nil, err
 	}
 
@@ -78,7 +80,7 @@ func NewProducer(fileName string) (*producer, error) {
 		return nil, err
 	}
 
-	file, err := os.OpenFile(fileNewName, os.O_WRONLY|os.O_CREATE, 0777)
+	file, err := os.OpenFile(fileNewName, os.O_WRONLY|os.O_CREATE, 644)
 	if err != nil {
 		return nil, err
 	}

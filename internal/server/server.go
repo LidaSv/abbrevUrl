@@ -21,7 +21,7 @@ import (
 
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/internal/storage/cache.log"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/internal/storage/cache"`
 }
 
 type gzipWriter struct {
