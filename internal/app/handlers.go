@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
@@ -17,7 +16,7 @@ const (
 )
 
 type Inter interface {
-	HaveLongURL(string) (string, map[string]string)
+	HaveLongURL(string) string
 	HaveShortURL(string) string
 	Inc(string, string)
 }
@@ -59,7 +58,7 @@ func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, _ := s.url.HaveLongURL(value.LongURL)
+	shortURL := s.url.HaveLongURL(value.LongURL)
 
 	tx := JSONLink{
 		ShortURL: shortURL,
@@ -85,10 +84,9 @@ func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	longURL := string(longURLByte)
 
-	shortURL, cache := s.url.HaveLongURL(longURL)
+	shortURL := s.url.HaveLongURL(longURL)
 
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintln(w, cache)
 	w.Write([]byte(shortURL))
 
 }

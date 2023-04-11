@@ -60,7 +60,7 @@ func (u *URLStorage) Inc(longURL, newID string) {
 	u.mutex.Unlock()
 }
 
-func (u *URLStorage) HaveLongURL(longURL string) (string, map[string]string) {
+func (u *URLStorage) HaveLongURL(longURL string) string {
 
 	val := u.getShortURL(longURL)
 
@@ -89,18 +89,18 @@ func (u *URLStorage) HaveLongURL(longURL string) (string, map[string]string) {
 
 	if val != "" {
 		shortURL := BaseURLNew + "/" + val
-		return shortURL, nil
+		return shortURL
 	}
 
 	//Сокращение URL
-	replacer := strings.NewReplacer("https://", "", "/", "", "http://", "", "www.", "", ".", "")
+	replacer := strings.NewReplacer("https://", "", "/", "", "http://", "", "www.", "", ".", "", "-", "")
 	repl := replacer.Replace(longURL)
 	newID := u.randSeq(repl)
 
 	shortURL := BaseURLNew + "/" + newID
 	u.Inc(longURL, newID)
 
-	return shortURL, u.Urls
+	return shortURL
 
 }
 
