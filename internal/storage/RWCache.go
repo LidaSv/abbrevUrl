@@ -22,12 +22,11 @@ func createFile(fileName string) (string, error) {
 	if string(fileName[0]) == "/" {
 		fileName = fileName[1:]
 	}
+	s := strings.Split(fileName, "/")
+	st := "/" + s[len(s)-1]
+	dir := strings.ReplaceAll(fileName, st, "")
 
-	if _, err := os.Stat(fileName); os.IsNotExist(err) {
-		s := strings.Split(fileName, "/")
-		st := "/" + s[len(s)-1]
-		dir := strings.ReplaceAll(fileName, st, "")
-
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0777)
 		if err != nil {
 			return "", err
