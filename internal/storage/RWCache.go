@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -45,9 +44,8 @@ func NewConsumer(fileName string) (*consumer, error) {
 		return nil, err
 	}
 
-	file, err := os.OpenFile(fileNewName, os.O_RDONLY|os.O_CREATE, 644)
+	file, err := os.OpenFile(fileNewName, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
-		fmt.Println("jkl")
 		return nil, err
 	}
 
@@ -80,7 +78,7 @@ func NewProducer(fileName string) (*producer, error) {
 		return nil, err
 	}
 
-	file, err := os.OpenFile(fileNewName, os.O_WRONLY|os.O_CREATE, 644)
+	file, err := os.OpenFile(fileNewName, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, err
 	}
