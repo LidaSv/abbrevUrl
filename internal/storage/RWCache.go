@@ -19,29 +19,30 @@ type consumer struct {
 }
 
 func createFile(fileName string) (string, error) {
-	if string(fileName[0]) == "/" {
-		fileName = fileName[1:]
-	}
+
+	//if string(fileName[0]) == "/" {
+	//	fileName = fileName[1:]
+	//}
 	s := strings.Split(fileName, "/")
 	st := "/" + s[len(s)-1]
-	dir := strings.ReplaceAll(fileName, st, "")
+	dir := "./" + strings.ReplaceAll(fileName, st, "")
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0777)
 		if err != nil {
 			return "", err
 		}
-		return fileName, nil
+		return "." + fileName, nil
 	}
-	return fileName, nil
+	return "." + fileName, nil
 }
 
 func NewConsumer(fileName string) (*consumer, error) {
-	_, err := createFile(fileName)
+	fileNewName, err := createFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	fileNewName := fileName
+	//fileNewName := fileName
 
 	file, err := os.OpenFile(fileNewName, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
@@ -72,11 +73,11 @@ type producer struct {
 }
 
 func NewProducer(fileName string) (*producer, error) {
-	_, err := createFile(fileName)
+	fileNewName, err := createFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	fileNewName := fileName
+	//fileNewName := fileName
 
 	file, err := os.OpenFile(fileNewName, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
