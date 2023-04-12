@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 type strucRW struct {
@@ -17,29 +18,29 @@ type consumer struct {
 	decoder *json.Decoder
 }
 
-//func createFile(fileName string) (string, error) {
-//	if string(fileName[0]) == "/" {
-//		fileName = fileName[1:]
-//	}
-//	s := strings.Split(fileName, "/")
-//	st := "/" + s[len(s)-1]
-//	dir := strings.ReplaceAll(fileName, st, "")
-//
-//	if _, err := os.Stat(dir); os.IsNotExist(err) {
-//		err = os.MkdirAll(dir, 0777)
-//		if err != nil {
-//			return "", err
-//		}
-//		return fileName, nil
-//	}
-//	return fileName, nil
-//}
+func createFile(fileName string) (string, error) {
+	if string(fileName[0]) == "/" {
+		fileName = fileName[1:]
+	}
+	s := strings.Split(fileName, "/")
+	st := "/" + s[len(s)-1]
+	dir := strings.ReplaceAll(fileName, st, "")
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0777)
+		if err != nil {
+			return "", err
+		}
+		return fileName, nil
+	}
+	return fileName, nil
+}
 
 func NewConsumer(fileName string) (*consumer, error) {
-	//fileNewName, err := createFile(fileName)
-	//if err != nil {
-	//	return nil, err
-	//}
+	_, err := createFile(fileName)
+	if err != nil {
+		return nil, err
+	}
 	fileNewName := fileName
 
 	file, err := os.OpenFile(fileNewName, os.O_RDONLY|os.O_CREATE, 0777)
@@ -71,10 +72,10 @@ type producer struct {
 }
 
 func NewProducer(fileName string) (*producer, error) {
-	//fileNewName, err := createFile(fileName)
-	//if err != nil {
-	//	return nil, err
-	//}
+	_, err := createFile(fileName)
+	if err != nil {
+		return nil, err
+	}
 	fileNewName := fileName
 
 	file, err := os.OpenFile(fileNewName, os.O_WRONLY|os.O_CREATE, 0777)
