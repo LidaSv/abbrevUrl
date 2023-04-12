@@ -44,6 +44,7 @@ func NewConsumer(fileName string) (*consumer, error) {
 	}
 	//fileNewName := fileName
 
+	//Прим.: Если на вход подавать ссылку без createFile(fileName string) проходит тест6
 	file, err := os.OpenFile(fileNewName, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
 		return nil, err
