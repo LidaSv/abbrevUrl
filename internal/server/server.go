@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"github.com/spf13/pflag"
@@ -50,30 +49,6 @@ func gzipHandle(next http.Handler) http.Handler {
 		w.Header().Set("Content-Encoding", "gzip")
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
-}
-
-func LengthHandle(w http.ResponseWriter, r *http.Request) {
-	// переменная reader будет равна r.Body или *gzip.Reader
-	var reader io.Reader
-
-	if r.Header.Get(`Content-Encoding`) == `gzip` {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-	}
-
-	body, err := io.ReadAll(reader)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	fmt.Fprintf(w, "Length: %d", len(body))
 }
 
 func AddServer() {
