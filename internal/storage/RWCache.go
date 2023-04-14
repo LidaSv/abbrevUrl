@@ -17,33 +17,8 @@ type consumer struct {
 	decoder *json.Decoder
 }
 
-//func createFile(fileName string) (string, error) {
-//
-//	//if string(fileName[0]) == "/" {
-//	//	fileName = fileName[1:]
-//	//}
-//	s := strings.Split(fileName, "/")
-//	st := "/" + s[len(s)-1]
-//	dir := "./" + strings.ReplaceAll(fileName, st, "")
-//
-//	if _, err := os.Stat(dir); os.IsNotExist(err) {
-//		err = os.MkdirAll(dir, 0777)
-//		if err != nil {
-//			return "", err
-//		}
-//		return "." + fileName, nil
-//	}
-//	return "." + fileName, nil
-//}
-
 func NewConsumer(fileName string) (*consumer, error) {
-	//fileNewName, err := createFile(fileName)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//fileNewName := fileName
 
-	//Прим.: Если на вход подавать ссылку без createFile(fileName string) проходит тест6
 	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {
 		return nil, err
@@ -73,11 +48,6 @@ type producer struct {
 }
 
 func NewProducer(fileName string) (*producer, error) {
-	//fileNewName, err := createFile(fileName)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//fileNewName := fileName
 
 	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {

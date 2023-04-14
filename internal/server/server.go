@@ -35,7 +35,6 @@ func AddServer() {
 		log.Fatal(err)
 	}
 
-	//flag := pflag.FlagSet{}
 	FlagServerAddress := flag.String("a", cfg.ServerAddress, "a string")
 	FlagBaseURL := flag.String("b", "http://"+cfg.ServerAddress, "a string")
 	FlagFileStoragePath := flag.String("f", cfg.FileStoragePath, "a string")
