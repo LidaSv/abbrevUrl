@@ -10,6 +10,12 @@ import (
 	"testing"
 )
 
+type Config struct {
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/tmp/cache"`
+}
+
 func TestUrlShort(t *testing.T) {
 	type args struct {
 		url        string
@@ -45,6 +51,7 @@ func TestUrlShort(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			st := storage.Iter()
+			st.BaseURL = "http://localhost:8080"
 			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/", body)
@@ -106,6 +113,7 @@ func TestShortenJSONLinkHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			st := storage.Iter()
+			st.BaseURL = "http://localhost:8080"
 			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/api/shorten", body)

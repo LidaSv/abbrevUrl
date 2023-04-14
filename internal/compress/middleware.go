@@ -1,4 +1,4 @@
-package server
+package compress
 
 import (
 	"compress/gzip"
@@ -33,4 +33,28 @@ func GzipHandle(next http.Handler) http.Handler {
 		w.Header().Set("Content-Encoding", "gzip")
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
+}
+
+func ReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	var reader io.Reader
+
+	if r.Header.Get(`Content-Encoding`) == `gzip` {
+		gz, err := gzip.NewReader(r.Body)
+		if err != nil {
+			return nil, err
+		}
+		reader = gz
+		defer gz.Close()
+	} else {
+		reader = r.Body
+	}
+
+	longURLByte, err := io.ReadAll(reader)
+	defer r.Body.Close()
+	if err != nil || len(longURLByte) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Incorrect URL"))
+		return nil, err
+	}
+	return longURLByte, nil
 }

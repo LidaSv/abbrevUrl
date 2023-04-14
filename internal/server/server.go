@@ -2,12 +2,13 @@ package server
 
 import (
 	"abbrevUrl/internal/app"
+	"abbrevUrl/internal/compress"
 	"abbrevUrl/internal/storage"
 	"context"
 	"errors"
+	"flag"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
-	"github.com/spf13/pflag"
 	"log"
 	"net/http"
 	"os"
@@ -18,13 +19,14 @@ import (
 
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/tmp/cache"`
 }
 
 func AddServer() {
 	r := chi.NewRouter()
 
-	r2 := GzipHandle(r)
+	r.Use(compress.GzipHandle)
 
 	st := storage.Iter()
 	var cfg Config
@@ -33,16 +35,25 @@ func AddServer() {
 		log.Fatal(err)
 	}
 
-	flag := pflag.FlagSet{}
+	//flag := pflag.FlagSet{}
 	FlagServerAddress := flag.String("a", cfg.ServerAddress, "a string")
+	FlagBaseURL := flag.String("b", "http://"+cfg.ServerAddress, "a string")
 	FlagFileStoragePath := flag.String("f", cfg.FileStoragePath, "a string")
-	flag.Parse(os.Args[1:])
+	flag.Parse()
 
-	filepath, exist := os.LookupEnv("FILE_STORAGE_PATH")
+	basePath, baseExists := os.LookupEnv("BASE_URL")
+
+	if baseExists {
+		st.BaseURL = basePath
+	} else {
+		st.BaseURL = *FlagBaseURL
+	}
+
+	filePath, fileExist := os.LookupEnv("FILE_STORAGE_PATH")
 
 	var fileName string
-	if exist {
-		fileName = filepath
+	if fileExist {
+		fileName = filePath
 	} else {
 		fileName = *FlagFileStoragePath
 	}
@@ -56,11 +67,11 @@ func AddServer() {
 		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
 	})
 
-	path, exists := os.LookupEnv("SERVER_ADDRESS")
+	serverPath, serverExists := os.LookupEnv("SERVER_ADDRESS")
 
 	var serv string
-	if exists {
-		serv = path
+	if serverExists {
+		serv = serverPath
 	} else {
 		serv = *FlagServerAddress
 	}
@@ -74,7 +85,7 @@ func AddServer() {
 
 	server := http.Server{
 		Addr:              ServerAdd,
-		Handler:           r2,
+		Handler:           r,
 		ReadHeaderTimeout: time.Second,
 	}
 

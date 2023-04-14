@@ -1,9 +1,9 @@
 package app
 
 import (
+	"abbrevUrl/internal/compress"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
-	"io"
 	"net/http"
 )
 
@@ -15,14 +15,14 @@ const (
 	bodyContentTypeJSON = "application/json"
 )
 
-type Inter interface {
+type Storage interface {
 	HaveLongURL(string) string
 	HaveShortURL(string) string
 	Inc(string, string)
 }
 
 type Hand struct {
-	url Inter
+	url Storage
 }
 
 type JSONLink struct {
@@ -30,20 +30,19 @@ type JSONLink struct {
 	ShortURL string `json:"result,omitempty"`
 }
 
-func HelpHandler(url Inter) *Hand {
+func HelpHandler(url Storage) *Hand {
 	return &Hand{url: url}
 }
 
 func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentTypeJSON)
 
-	longURLByte, err := io.ReadAll(r.Body)
+	longURLByte, err := compress.ReadBody(w, r)
+	defer r.Body.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Incorrect URL"))
 		return
 	}
-	defer r.Body.Close()
 
 	value := JSONLink{}
 	if err := json.Unmarshal(longURLByte, &value); err != nil {
@@ -75,13 +74,13 @@ func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentType)
 
-	longURLByte, err := io.ReadAll(r.Body)
-	if err != nil || len(longURLByte) == 0 {
+	longURLByte, err := compress.ReadBody(w, r)
+	defer r.Body.Close()
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Incorrect URL"))
 		return
 	}
-	defer r.Body.Close()
+
 	longURL := string(longURLByte)
 
 	shortURL := s.url.HaveLongURL(longURL)
@@ -111,6 +110,5 @@ func (s *Hand) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set(typeLocation, longURL)
 	http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
-	//w.WriteHeader(http.StatusTemporaryRedirect)
 	w.Write([]byte(longURL))
 }

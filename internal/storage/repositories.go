@@ -1,23 +1,15 @@
 package storage
 
 import (
-	"github.com/caarlos0/env/v6"
-	"github.com/spf13/pflag"
-	"log"
 	"math/rand"
-	"os"
 	"strings"
 	"sync"
 )
 
-type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL       string `env:"BASE_URL"`
-}
-
 type URLStorage struct {
-	mutex sync.RWMutex
-	Urls  map[string]string
+	mutex   sync.RWMutex
+	Urls    map[string]string
+	BaseURL string
 }
 
 func Iter() *URLStorage {
@@ -64,24 +56,7 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 
 	val := u.getShortURL(longURL)
 
-	var cfg Config
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	flag := pflag.FlagSet{}
-	FlagBaseURL := flag.String("b", "http://"+cfg.ServerAddress, "a string")
-	flag.Parse(os.Args[1:])
-
-	path, exists := os.LookupEnv("BASE_URL")
-
-	var BaseURLNew string
-	if exists {
-		BaseURLNew = path
-	} else {
-		BaseURLNew = *FlagBaseURL
-	}
+	BaseURLNew := u.BaseURL
 
 	if BaseURLNew[len(BaseURLNew)-1:] == "/" {
 		BaseURLNew = BaseURLNew[:len(BaseURLNew)-1]
