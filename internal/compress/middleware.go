@@ -53,8 +53,7 @@ func ReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	defer r.Body.Close()
 	if err != nil || len(longURLByte) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Incorrect URL"))
-		return nil, err
+		return []byte("Incorrect URL"), err
 	}
 	return longURLByte, nil
 }

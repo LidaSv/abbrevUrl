@@ -41,6 +41,7 @@ func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write(longURLByte)
 		return
 	}
 
@@ -78,6 +79,7 @@ func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write(longURLByte)
 		return
 	}
 
