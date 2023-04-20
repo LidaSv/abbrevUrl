@@ -12,8 +12,33 @@ type URLStorage struct {
 	BaseURL string
 }
 
+type AllJSONGet struct {
+	ShortUrl    string `json:"short_url,omitempty"`
+	OriginalUrl string `json:"original_url,omitempty"`
+}
+
 func Iter() *URLStorage {
 	return &URLStorage{Urls: make(map[string]string)}
+}
+
+func (u *URLStorage) TakeAllURL() []AllJSONGet {
+
+	var l []AllJSONGet
+
+	if len(u.Urls) == 0 {
+		return nil
+	}
+
+	for key, value := range u.Urls {
+		if strings.HasPrefix(value, "https://") {
+			z := AllJSONGet{
+				ShortUrl:    u.BaseURL + "/" + key,
+				OriginalUrl: value,
+			}
+			l = append(l, z)
+		}
+	}
+	return l
 }
 
 func (u *URLStorage) randSeq(longURL string) string {
@@ -80,6 +105,7 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 }
 
 func (u *URLStorage) HaveShortURL(ID string) string {
+
 	u.mutex.RLock()
 	longURL, ok := u.Urls[ID]
 	u.mutex.RUnlock()

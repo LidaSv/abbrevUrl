@@ -2,6 +2,7 @@ package app
 
 import (
 	"abbrevUrl/internal/compress"
+	"abbrevUrl/internal/storage"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -19,6 +20,7 @@ type Storage interface {
 	HaveLongURL(string) string
 	HaveShortURL(string) string
 	Inc(string, string)
+	TakeAllURL() []storage.AllJSONGet
 }
 
 type Hand struct {
@@ -32,6 +34,25 @@ type JSONLink struct {
 
 func HelpHandler(url Storage) *Hand {
 	return &Hand{url: url}
+}
+
+func (s *Hand) AllJSONGetShortenHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set(typeContentType, bodyContentTypeJSON)
+
+	l := s.url.TakeAllURL()
+
+	if l == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	txBz, err := json.MarshalIndent(l, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write(txBz)
 }
 
 func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {

@@ -18,7 +18,7 @@ import (
 )
 
 type Config struct {
-	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8090"`
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/tmp/cache"`
 }
@@ -27,6 +27,7 @@ func AddServer() {
 	r := chi.NewRouter()
 
 	r.Use(compress.GzipHandle)
+	r.Use(compress.CookieHandle)
 
 	st := storage.Iter()
 	var cfg Config
@@ -64,6 +65,7 @@ func AddServer() {
 		r.Post("/api/shorten", s.ShortenJSONLinkHandler)
 		r.Post("/", s.ShortenLinkHandler)
 		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
+		r.Get("/api/user/urls", s.AllJSONGetShortenHandler)
 	})
 
 	serverPath, serverExists := os.LookupEnv("SERVER_ADDRESS")
