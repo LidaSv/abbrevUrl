@@ -51,7 +51,7 @@ func (s *Hand) AllJSONGetShortenHandler(w http.ResponseWriter, r *http.Request) 
 		panic(err)
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	w.Write(txBz)
 }
 
