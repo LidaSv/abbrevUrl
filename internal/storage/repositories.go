@@ -13,8 +13,8 @@ type URLStorage struct {
 }
 
 type AllJSONGet struct {
-	ShortUrl    string `json:"short_url,omitempty"`
-	OriginalUrl string `json:"original_url,omitempty"`
+	ShortURL    string `json:"short_url,omitempty"`
+	OriginalURL string `json:"original_url,omitempty"`
 }
 
 func Iter() *URLStorage {
@@ -32,8 +32,8 @@ func (u *URLStorage) TakeAllURL() []AllJSONGet {
 	for key, value := range u.Urls {
 		if strings.HasPrefix(value, "https://") {
 			z := AllJSONGet{
-				ShortUrl:    u.BaseURL + "/" + key,
-				OriginalUrl: value,
+				ShortURL:    u.BaseURL + "/" + key,
+				OriginalURL: value,
 			}
 			l = append(l, z)
 		}
