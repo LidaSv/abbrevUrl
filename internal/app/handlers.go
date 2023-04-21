@@ -44,7 +44,7 @@ func getCookies(r *http.Request) (string, error) {
 	z, err := r.Cookie(name)
 	if err != nil {
 		log.Println("Not cookie")
-		return "", errors.New("Not cookie")
+		return "", errors.New("not cookie")
 	}
 
 	//log.Println(z.Value)
@@ -55,7 +55,7 @@ func getCookies(r *http.Request) (string, error) {
 	IP, err := compress.UnhashCookie(z.Value, name)
 	if err != nil {
 		log.Println("Not able to unhash Cookie")
-		return "", errors.New("Not able to unhash Cookie")
+		return "", errors.New("not able to unhash Cookie")
 	}
 	//log.Println(IP)
 	return IP, nil
