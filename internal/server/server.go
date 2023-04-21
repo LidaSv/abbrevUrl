@@ -21,6 +21,7 @@ type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/tmp/cache"`
+	DatabaseDsn     string `env:"DATABASE_DSN" envDefault:"postgres://username:password@localhost:5432/database_name"`
 }
 
 func AddServer() {
@@ -38,6 +39,7 @@ func AddServer() {
 	FlagServerAddress := flag.String("a", cfg.ServerAddress, "a string")
 	FlagBaseURL := flag.String("b", "http://"+cfg.ServerAddress, "a string")
 	FlagFileStoragePath := flag.String("f", cfg.FileStoragePath, "a string")
+	FlagDatabaseDsn := flag.String("d", cfg.DatabaseDsn, "a string")
 	flag.Parse()
 
 	basePath, baseExists := os.LookupEnv("BASE_URL")
@@ -46,6 +48,14 @@ func AddServer() {
 		st.BaseURL = basePath
 	} else {
 		st.BaseURL = *FlagBaseURL
+	}
+
+	dbPath, dbExists := os.LookupEnv("DATABASE_DSN")
+
+	if dbExists {
+		st.DatabaseDsn = dbPath
+	} else {
+		st.DatabaseDsn = *FlagDatabaseDsn
 	}
 
 	filePath, fileExist := os.LookupEnv("FILE_STORAGE_PATH")
@@ -65,6 +75,7 @@ func AddServer() {
 		r.Post("/", s.ShortenLinkHandler)
 		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
 		r.Get("/api/user/urls", s.AllJSONGetShortenHandler)
+		r.Get("/ping", s.PingPSQL)
 	})
 
 	serverPath, serverExists := os.LookupEnv("SERVER_ADDRESS")

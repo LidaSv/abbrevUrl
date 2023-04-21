@@ -8,10 +8,11 @@ import (
 )
 
 type URLStorage struct {
-	mutex   sync.RWMutex
-	Urls    map[string]string
-	IPUrls  map[string][]string
-	BaseURL string
+	mutex       sync.RWMutex
+	Urls        map[string]string
+	IPUrls      map[string][]string
+	BaseURL     string
+	DatabaseDsn string
 }
 
 type AllJSONGet struct {
@@ -22,6 +23,10 @@ type AllJSONGet struct {
 
 func Iter() *URLStorage {
 	return &URLStorage{Urls: make(map[string]string), IPUrls: map[string][]string{}}
+}
+
+func (u *URLStorage) DatabaseDsns() string {
+	return u.DatabaseDsn
 }
 
 func (u *URLStorage) TakeAllURL(IP string) []AllJSONGet {

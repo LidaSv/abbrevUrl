@@ -3,10 +3,16 @@ package app
 import (
 	"abbrevUrl/internal/compress"
 	"abbrevUrl/internal/storage"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+
+	//"github.com/jackc/pgx"
+
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 )
@@ -24,6 +30,7 @@ type Storage interface {
 	HaveShortURL(string) string
 	Inc(string, string, string)
 	TakeAllURL(string) []storage.AllJSONGet
+	DatabaseDsns() string
 }
 
 type Hand struct {
@@ -37,6 +44,22 @@ type JSONLink struct {
 
 func HelpHandler(url Storage) *Hand {
 	return &Hand{url: url}
+}
+
+func (s *Hand) PingPSQL(w http.ResponseWriter, r *http.Request) {
+
+	DatabaseDsn := s.url.DatabaseDsns()
+	conn, err := pgx.Connect(context.Background(), DatabaseDsn)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Unable to connect to database: %v\n", err)
+		return
+	}
+	defer conn.Close(context.Background())
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("DB connection"))
+
 }
 
 func getCookies(r *http.Request) (string, error) {
