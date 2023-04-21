@@ -66,6 +66,7 @@ func ReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 func newCookie(r *http.Request, name string) (*http.Cookie, error) {
 	ClientIP := r.RemoteAddr
 	ClientIP = ClientIP[len(ClientIP)-5:]
+	//ClientIP := "87654"
 
 	hashClientIP, err := hashCookie(ClientIP, name)
 	if err != nil {
@@ -105,12 +106,14 @@ func CookieHandle(next http.Handler) http.Handler {
 				io.WriteString(w, err.Error())
 				return
 			}
+			//log.Println("создание куки")
 			http.SetCookie(w, cookie)
 		default:
 			// проверка подлинности
-			if IP, err := unhashCookie(cookie.Value, name, r); err == nil {
-				//http.SetCookie(w, cookie)
+			if IP, err := UnhashCookie(cookie.Value, name); err == nil {
+				//log.Println("проверка подлинности")
 				cookie.Value = IP
+				//log.Println(IP)
 				r.AddCookie(cookie)
 			} else {
 				cookie, err = newCookie(r, name)
@@ -125,18 +128,18 @@ func CookieHandle(next http.Handler) http.Handler {
 	})
 }
 
-func unhashCookie(value, name string, r *http.Request) (string, error) {
+func UnhashCookie(value, name string) (string, error) {
 	key := sha256.Sum256([]byte(name))
 
 	aesblock, err := aes.NewCipher(key[:])
 	if err != nil {
-		log.Print(err)
+		log.Print("NewCipher: ", err)
 		return "", err
 	}
 
 	aesgcm, err := cipher.NewGCM(aesblock)
 	if err != nil {
-		log.Print(err)
+		log.Print("NewGCM: ", err)
 		return "", err
 	}
 
@@ -144,22 +147,16 @@ func unhashCookie(value, name string, r *http.Request) (string, error) {
 
 	encrypted, err := hex.DecodeString(value)
 	if err != nil {
-		log.Print(err)
+		log.Print("DecodeString: :", err)
 		return "", err
 	}
 
 	src, err := aesgcm.Open(nil, nonce, encrypted, nil)
 	if err != nil {
+		log.Println("Open: ", err)
 		return "", err
 	}
 
-	////ClientIP := r.RemoteAddr
-	////ClientIP = ClientIP[len(ClientIP)-5:]
-	//
-	//if !hmac.Equal(src, []byte(ClientIP)) {
-	//	log.Print(errors.New("invalid cookie value "), string(src), " ", ClientIP)
-	//	return "", errors.New("invalid cookie value")
-	//}
 	return string(src), nil
 }
 

@@ -26,8 +26,7 @@ type Config struct {
 func AddServer() {
 	r := chi.NewRouter()
 
-	r.Use(compress.GzipHandle)
-	r.Use(compress.CookieHandle)
+	r.Use(compress.CookieHandle, compress.GzipHandle)
 
 	st := storage.Iter()
 	var cfg Config

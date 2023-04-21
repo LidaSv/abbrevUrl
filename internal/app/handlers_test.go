@@ -49,6 +49,13 @@ func TestUrlShort(t *testing.T) {
 			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/", body)
+			request.AddCookie(&http.Cookie{
+				Name:     "clientCookie",
+				Value:    "98765",
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   true,
+			})
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(s.ShortenLinkHandler)
 			h.ServeHTTP(w, request)
@@ -111,6 +118,13 @@ func TestShortenJSONLinkHandler(t *testing.T) {
 			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/api/shorten", body)
+			request.AddCookie(&http.Cookie{
+				Name:     "clientCookie",
+				Value:    "98765",
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   true,
+			})
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(s.ShortenJSONLinkHandler)
 			h.ServeHTTP(w, request)

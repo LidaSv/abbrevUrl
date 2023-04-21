@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"log"
 	"math/rand"
 	"strings"
 	"sync"
@@ -9,32 +10,39 @@ import (
 type URLStorage struct {
 	mutex   sync.RWMutex
 	Urls    map[string]string
+	IPUrls  map[string][]string
 	BaseURL string
 }
 
 type AllJSONGet struct {
+	IP          string `json:"-"`
 	ShortURL    string `json:"short_url,omitempty"`
 	OriginalURL string `json:"original_url,omitempty"`
 }
 
 func Iter() *URLStorage {
-	return &URLStorage{Urls: make(map[string]string)}
+	return &URLStorage{Urls: make(map[string]string), IPUrls: map[string][]string{}}
 }
 
-func (u *URLStorage) TakeAllURL() []AllJSONGet {
+func (u *URLStorage) TakeAllURL(IP string) []AllJSONGet {
 
 	var l []AllJSONGet
 
-	if len(u.Urls) == 0 {
+	if len(u.IPUrls) == 0 {
 		return nil
 	}
 
-	for key, value := range u.Urls {
-		if strings.HasPrefix(value, "https://") {
+	i := 0
+
+	for key, value := range u.IPUrls {
+		log.Println(key, IP)
+		if key == IP {
 			z := AllJSONGet{
-				ShortURL:    u.BaseURL + "/" + key,
-				OriginalURL: value,
+				IP:          key,
+				ShortURL:    value[i],
+				OriginalURL: value[i+1],
 			}
+			i += 2
 			l = append(l, z)
 		}
 	}
@@ -70,14 +78,18 @@ func (u *URLStorage) getShortURL(longURL string) string {
 	return ""
 }
 
-func (u *URLStorage) Inc(longURL, newID string) {
+func (u *URLStorage) Inc(longURL, newID, IP string) {
 	u.mutex.Lock()
 	u.Urls[longURL] = newID
 	u.Urls[newID] = longURL
+	u.IPUrls[IP] = append(u.IPUrls[IP], u.BaseURL+"/"+newID, longURL)
+	//log.Println(u.IPUrls)
 	u.mutex.Unlock()
 }
 
-func (u *URLStorage) HaveLongURL(longURL string) string {
+func (u *URLStorage) HaveLongURL(longURL, IP string) string {
+	//log.Println(u.IPUrls)
+	//log.Println(u.Urls)
 
 	val := u.getShortURL(longURL)
 
@@ -98,7 +110,7 @@ func (u *URLStorage) HaveLongURL(longURL string) string {
 	newID := u.randSeq(repl)
 
 	shortURL := BaseURLNew + "/" + newID
-	u.Inc(longURL, newID)
+	u.Inc(longURL, newID, IP)
 
 	return shortURL
 
