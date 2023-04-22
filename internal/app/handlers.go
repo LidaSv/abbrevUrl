@@ -110,7 +110,7 @@ func (s *Hand) AllJSONGetShortenHandler(w http.ResponseWriter, r *http.Request) 
 	l := s.url.TakeAllURL(IP)
 
 	if l == nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
