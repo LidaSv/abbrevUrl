@@ -1,10 +1,13 @@
 package storage
 
 import (
+	"context"
+	"github.com/jackc/pgx/v5"
 	"log"
 	"math/rand"
 	"strings"
 	"sync"
+	"time"
 )
 
 type URLStorage struct {
@@ -90,6 +93,29 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 	u.IPUrls[IP] = append(u.IPUrls[IP], u.BaseURL+"/"+newID, longURL)
 	//log.Println(u.IPUrls)
 	u.mutex.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if u.DatabaseDsn != "" {
+		db, err := pgx.Connect(ctx, u.DatabaseDsn)
+		if err != nil {
+			log.Println("Unable to connect to database:", err)
+			return
+		}
+		defer db.Close(context.Background())
+
+		_, err = db.Exec(ctx,
+			`insert into long_short_urls 
+				select 
+				    $1 long_url,
+					$2 short_url,
+					$3 id_short_url
+				;`, longURL, u.BaseURL+"/"+newID, newID)
+		if err != nil {
+			log.Fatal("create: ", err)
+		}
+	}
 }
 
 func (u *URLStorage) HaveLongURL(longURL, IP string) string {

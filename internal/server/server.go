@@ -122,17 +122,10 @@ func AddServer() {
 	case <-stop:
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
-		if st.DatabaseDsn != "" {
-			storage.WriteDBCashe(st.DatabaseDsn, st)
-		} else {
-			storage.WriterCache(fileName, st)
-		}
+		storage.WriterCache(fileName, st)
+
 	case <-chErrors:
 		_ = server.Shutdown(context.Background())
-		if st.DatabaseDsn != "" {
-			storage.WriteDBCashe(st.DatabaseDsn, st)
-		} else {
-			storage.WriterCache(fileName, st)
-		}
+		storage.WriterCache(fileName, st)
 	}
 }

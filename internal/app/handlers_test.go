@@ -46,6 +46,7 @@ func TestUrlShort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			st := storage.Iter()
 			st.BaseURL = "http://localhost:8080"
+			st.DatabaseDsn = "host=localhost port=6422 user=postgres password=123 dbname=postgres"
 			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/", body)
@@ -115,6 +116,7 @@ func TestShortenJSONLinkHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			st := storage.Iter()
 			st.BaseURL = "http://localhost:8080"
+			st.DatabaseDsn = "host=localhost port=6422 user=postgres password=123 dbname=postgres"
 			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/api/shorten", body)
