@@ -77,7 +77,7 @@ func WriteDBCashe(DatabaseDsn string, st *URLStorage) {
 
 	cache := st.Urls
 	for r, cc := range cache {
-		if strings.HasPrefix(r, "https://") {
+		if strings.HasPrefix(r, "https://") || strings.HasPrefix(r, "http://") {
 			_, err := db.Exec(ctx,
 				`insert into long_short_urls 
 				select 
