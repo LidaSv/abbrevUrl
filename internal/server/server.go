@@ -77,8 +77,9 @@ func AddServer() {
 	s := app.HelpHandler(st)
 
 	r.Route("/", func(r chi.Router) {
-		r.Post("/api/shorten", s.ShortenJSONLinkHandler)
 		r.Post("/", s.ShortenLinkHandler)
+		r.Post("/api/shorten", s.ShortenJSONLinkHandler)
+		r.Post("/api/shorten/batch", s.ShortenDBLinkHandler)
 		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
 		r.Get("/api/user/urls", s.AllJSONGetShortenHandler)
 		r.Get("/ping", s.PingPSQL)

@@ -11,11 +11,13 @@ import (
 )
 
 type URLStorage struct {
-	mutex       sync.RWMutex
-	Urls        map[string]string
-	IPUrls      map[string][]string
-	BaseURL     string
-	DatabaseDsn string
+	mutex            sync.RWMutex
+	Urls             map[string]string
+	IPUrls           map[string][]string
+	BaseURL          string
+	DatabaseDsn      string
+	MutexOriginalUrl sync.RWMutex
+	OriginalUrl      map[string]string
 }
 
 type AllJSONGet struct {
@@ -25,7 +27,37 @@ type AllJSONGet struct {
 }
 
 func Iter() *URLStorage {
-	return &URLStorage{Urls: make(map[string]string), IPUrls: map[string][]string{}}
+	return &URLStorage{
+		Urls:        make(map[string]string),
+		IPUrls:      map[string][]string{},
+		OriginalUrl: make(map[string]string),
+	}
+}
+
+func (u *URLStorage) ShortenDBLink(longURL string) string {
+
+	val := u.getShortURL(longURL)
+
+	BaseURLNew := u.BaseURL
+
+	if BaseURLNew[len(BaseURLNew)-1:] == "/" {
+		BaseURLNew = BaseURLNew[:len(BaseURLNew)-1]
+	}
+
+	if val != "" {
+		shortURL := BaseURLNew + "/" + val
+		return shortURL
+	}
+
+	//Сокращение URL
+	replacer := strings.NewReplacer("https://", "", "/", "", "http://", "", "www.", "", ".", "", "-", "")
+	repl := replacer.Replace(longURL)
+	newID := u.randSeq(repl)
+
+	shortURL := BaseURLNew + "/" + newID
+
+	return shortURL
+
 }
 
 func (u *URLStorage) DatabaseDsns() string {
@@ -43,7 +75,7 @@ func (u *URLStorage) TakeAllURL(IP string) []AllJSONGet {
 	i := 0
 
 	for key, value := range u.IPUrls {
-		log.Println(key, IP)
+		//log.Println(key, IP)
 		if key == IP {
 			z := AllJSONGet{
 				IP:          key,
@@ -94,10 +126,10 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 	//log.Println(u.IPUrls)
 	u.mutex.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	if u.DatabaseDsn != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
 		db, err := pgx.Connect(ctx, u.DatabaseDsn)
 		if err != nil {
 			log.Println("Unable to connect to database:", err)
@@ -119,8 +151,6 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 }
 
 func (u *URLStorage) HaveLongURL(longURL, IP string) string {
-	//log.Println(u.IPUrls)
-	//log.Println(u.Urls)
 
 	val := u.getShortURL(longURL)
 

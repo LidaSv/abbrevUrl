@@ -4,11 +4,10 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	"log"
-	"strings"
 	"time"
 )
 
-type structBD struct {
+type structDB struct {
 	LongURL string
 	ID      string
 }
@@ -41,7 +40,7 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
 	defer row.Close()
 
 	for row.Next() {
-		var v structBD
+		var v structDB
 		err = row.Scan(&v.LongURL, &v.ID)
 		if err != nil {
 			log.Println("scan:", err)
@@ -55,39 +54,5 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
 	err = row.Err()
 	if err != nil {
 		log.Println("Err: ", err)
-	}
-}
-
-func WriteDBCashe(DatabaseDsn string, st *URLStorage) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	db, err := pgx.Connect(ctx, DatabaseDsn)
-	if err != nil {
-		log.Println("Unable to connect to database:", err)
-		return
-	}
-	defer db.Close(context.Background())
-
-	_, err = db.Exec(ctx,
-		`truncate table long_short_urls;`)
-	if err != nil {
-		log.Fatal("truncate: ", err)
-	}
-
-	cache := st.Urls
-	for r, cc := range cache {
-		if strings.HasPrefix(r, "https://") || strings.HasPrefix(r, "http://") {
-			_, err := db.Exec(ctx,
-				`insert into long_short_urls 
-				select 
-				    $1 long_url,
-					$2 short_url,
-					$3 id_short_url
-				;`, r, st.BaseURL+"/"+cc, cc)
-			if err != nil {
-				log.Fatal("create: ", err)
-			}
-		}
 	}
 }

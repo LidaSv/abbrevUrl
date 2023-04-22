@@ -27,6 +27,7 @@ type Storage interface {
 	Inc(string, string, string)
 	TakeAllURL(string) []storage.AllJSONGet
 	DatabaseDsns() string
+	ShortenDBLink(string) string
 }
 
 type Hand struct {
@@ -38,46 +39,62 @@ type JSONLink struct {
 	ShortURL string `json:"result,omitempty"`
 }
 
+type OriginLinks struct {
+	ID          string `json:"correlation_id,omitempty"`
+	OriginalUrl string `json:"original_url,omitempty"`
+}
+
+type OriginLinksShort struct {
+	ID       string `json:"correlation_id,omitempty"`
+	ShortURL string `json:"short_url,omitempty"`
+}
+
 func HelpHandler(url Storage) *Hand {
 	return &Hand{url: url}
 }
 
-func (s *Hand) PingPSQL(w http.ResponseWriter, r *http.Request) {
+func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
 
-	DatabaseDsn := s.url.DatabaseDsns()
-	conn, err := pgx.Connect(context.Background(), DatabaseDsn)
+	longURLByte, err := middleware.ReadBody(w, r)
+	defer r.Body.Close()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Unable to connect to database: %v\n", err)
+		log.Println("Read body: ", err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(longURLByte)
 		return
 	}
-	defer conn.Close(context.Background())
+
+	var value []OriginLinks
+	err = json.Unmarshal(longURLByte, &value)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Incorrect type URL"))
+		log.Println("Unmarshal: ", err)
+		return
+	}
+
+	var short []OriginLinksShort
+	for _, t := range value {
+		shortURL := s.url.ShortenDBLink(t.OriginalUrl)
+		z := OriginLinksShort{
+			ID:       t.ID,
+			ShortURL: shortURL,
+		}
+		short = append(short, z)
+	}
+
+	if short == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	txBz, err := json.MarshalIndent(short, "", "  ")
+	if err != nil {
+		panic(err)
+	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("DB connection"))
-
-}
-
-func getCookies(r *http.Request) (string, error) {
-	name := "clientCookie"
-	z, err := r.Cookie(name)
-	if err != nil {
-		log.Println("Not cookie")
-		return "", errors.New("not cookie")
-	}
-
-	//log.Println(z.Value)
-	if len(z.Value) == 5 {
-		IP := z.Value
-		return IP, nil
-	}
-	IP, err := middleware.UnhashCookie(z.Value, name)
-	if err != nil {
-		log.Println("Not able to unhash Cookie")
-		return "", errors.New("not able to unhash Cookie")
-	}
-	//log.Println(IP)
-	return IP, nil
+	w.Write(txBz)
 }
 
 func (s *Hand) AllJSONGetShortenHandler(w http.ResponseWriter, r *http.Request) {
@@ -196,4 +213,40 @@ func (s *Hand) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeLocation, longURL)
 	http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	w.Write([]byte(longURL))
+}
+
+func getCookies(r *http.Request) (string, error) {
+	name := "clientCookie"
+	z, err := r.Cookie(name)
+	if err != nil {
+		log.Println("Not cookie")
+		return "", errors.New("not cookie")
+	}
+
+	if len(z.Value) == 5 {
+		IP := z.Value
+		return IP, nil
+	}
+	IP, err := middleware.UnhashCookie(z.Value, name)
+	if err != nil {
+		log.Println("Not able to unhash Cookie")
+		return "", errors.New("not able to unhash Cookie")
+	}
+	return IP, nil
+}
+
+func (s *Hand) PingPSQL(w http.ResponseWriter, r *http.Request) {
+
+	DatabaseDsn := s.url.DatabaseDsns()
+	conn, err := pgx.Connect(context.Background(), DatabaseDsn)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Unable to connect to database: %v\n", err)
+		return
+	}
+	defer conn.Close(context.Background())
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("DB connection"))
+
 }
