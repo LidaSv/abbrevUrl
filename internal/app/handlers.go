@@ -41,7 +41,7 @@ type JSONLink struct {
 
 type OriginLinks struct {
 	ID          string `json:"correlation_id,omitempty"`
-	OriginalUrl string `json:"original_url,omitempty"`
+	OriginalURL string `json:"original_url,omitempty"`
 }
 
 type OriginLinksShort struct {
@@ -75,7 +75,7 @@ func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	var short []OriginLinksShort
 	for _, t := range value {
-		shortURL := s.url.ShortenDBLink(t.OriginalUrl)
+		shortURL := s.url.ShortenDBLink(t.OriginalURL)
 		z := OriginLinksShort{
 			ID:       t.ID,
 			ShortURL: shortURL,
@@ -93,7 +93,7 @@ func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	w.Write(txBz)
 }
 
