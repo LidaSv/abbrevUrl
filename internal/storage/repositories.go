@@ -53,6 +53,8 @@ func (u *URLStorage) ShortenDBLink(longURL string) string {
 
 	shortURL := BaseURLNew + "/" + newID
 
+	u.Inc(longURL, newID, "")
+
 	return shortURL
 
 }
