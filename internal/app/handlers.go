@@ -54,6 +54,7 @@ func HelpHandler(url Storage) *Hand {
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set(typeContentType, bodyContentTypeJSON)
 
 	longURLByte, err := middleware.ReadBody(w, r)
 	defer r.Body.Close()
@@ -109,7 +110,7 @@ func (s *Hand) AllJSONGetShortenHandler(w http.ResponseWriter, r *http.Request) 
 	l := s.url.TakeAllURL(IP)
 
 	if l == nil {
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
