@@ -1,7 +1,7 @@
 package app
 
 import (
-	"abbrevUrl/internal/compress"
+	"abbrevUrl/internal/middleware"
 	"abbrevUrl/internal/storage"
 	"context"
 	"encoding/json"
@@ -9,10 +9,6 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-
-	//"github.com/jackc/pgx"
-
-	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 )
@@ -75,7 +71,7 @@ func getCookies(r *http.Request) (string, error) {
 		IP := z.Value
 		return IP, nil
 	}
-	IP, err := compress.UnhashCookie(z.Value, name)
+	IP, err := middleware.UnhashCookie(z.Value, name)
 	if err != nil {
 		log.Println("Not able to unhash Cookie")
 		return "", errors.New("not able to unhash Cookie")
@@ -118,7 +114,7 @@ func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	longURLByte, err := compress.ReadBody(w, r)
+	longURLByte, err := middleware.ReadBody(w, r)
 	defer r.Body.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -162,7 +158,7 @@ func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	longURLByte, err := compress.ReadBody(w, r)
+	longURLByte, err := middleware.ReadBody(w, r)
 	defer r.Body.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

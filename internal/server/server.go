@@ -2,7 +2,7 @@ package server
 
 import (
 	"abbrevUrl/internal/app"
-	"abbrevUrl/internal/compress"
+	"abbrevUrl/internal/middleware"
 	"abbrevUrl/internal/storage"
 	"context"
 	"errors"
@@ -20,14 +20,15 @@ import (
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"/tmp/cache"`
-	DatabaseDsn     string `env:"DATABASE_DSN" envDefault:"postgres://username:password@localhost:5432/database_name"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"./tmp/cache"`
+	DatabaseDsn     string `env:"DATABASE_DSN"`
+	//envDefault:"host=localhost port=6422 user=postgres password=123 dbname=postgres"
 }
 
 func AddServer() {
 	r := chi.NewRouter()
 
-	r.Use(compress.CookieHandle, compress.GzipHandle)
+	r.Use(middleware.CookieHandle, middleware.GzipHandle)
 
 	st := storage.Iter()
 	var cfg Config
@@ -66,7 +67,12 @@ func AddServer() {
 	} else {
 		fileName = *FlagFileStoragePath
 	}
-	storage.ReadCache(fileName, st)
+
+	if st.DatabaseDsn != "" {
+		storage.ReadDBCashe(st.DatabaseDsn, st)
+	} else {
+		storage.ReadCache(fileName, st)
+	}
 
 	s := app.HelpHandler(st)
 
@@ -116,9 +122,17 @@ func AddServer() {
 	case <-stop:
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
-		storage.WriterCache(fileName, st)
+		if st.DatabaseDsn != "" {
+			storage.WriteDBCashe(st.DatabaseDsn, st)
+		} else {
+			storage.WriterCache(fileName, st)
+		}
 	case <-chErrors:
 		_ = server.Shutdown(context.Background())
-		storage.WriterCache(fileName, st)
+		if st.DatabaseDsn != "" {
+			storage.WriteDBCashe(st.DatabaseDsn, st)
+		} else {
+			storage.WriterCache(fileName, st)
+		}
 	}
 }
