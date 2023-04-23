@@ -18,13 +18,14 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
 
 	db, err := pgx.Connect(ctx, DatabaseDsn)
 	if err != nil {
-		log.Println("Unable to connect to database:", err)
+		log.Fatal("Unable to connect to database:", err)
 		return
 	}
 	defer db.Close(context.Background())
 
 	_, err = db.Exec(ctx,
 		`create table if not exists long_short_urls (
+    			id_long_url serial,
 				long_url varchar(256),
 				short_url varchar(256),
 				id_short_url varchar(32)
@@ -35,7 +36,7 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
 
 	row, err := db.Query(ctx, "SELECT long_url, id_short_url FROM long_short_urls")
 	if err != nil {
-		log.Println("select: ", err)
+		log.Fatal("select: ", err)
 	}
 	defer row.Close()
 
@@ -43,7 +44,7 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
 		var v structDB
 		err = row.Scan(&v.LongURL, &v.ID)
 		if err != nil {
-			log.Println("scan:", err)
+			log.Fatal("scan:", err)
 		}
 		st.mutex.RLock()
 		st.Urls[v.LongURL] = v.ID
@@ -53,6 +54,6 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
 
 	err = row.Err()
 	if err != nil {
-		log.Println("Err: ", err)
+		log.Fatal("Err: ", err)
 	}
 }

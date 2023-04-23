@@ -22,12 +22,12 @@ const (
 )
 
 type Storage interface {
-	HaveLongURL(string, string) string
+	HaveLongURL(string, string) (string, string)
 	HaveShortURL(string) string
 	Inc(string, string, string)
 	TakeAllURL(string) []storage.AllJSONGet
 	DatabaseDsns() string
-	ShortenDBLink(string) string
+	ShortenDBLink(string) (string, string)
 }
 
 type Hand struct {
@@ -68,15 +68,15 @@ func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
 	var value []OriginLinks
 	err = json.Unmarshal(longURLByte, &value)
 	if err != nil {
+		log.Println("Unmarshal: ", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Incorrect type URL"))
-		log.Println("Unmarshal: ", err)
 		return
 	}
 
 	var short []OriginLinksShort
 	for _, t := range value {
-		shortURL := s.url.ShortenDBLink(t.OriginalURL)
+		shortURL, _ := s.url.ShortenDBLink(t.OriginalURL)
 		z := OriginLinksShort{
 			ID:       t.ID,
 			ShortURL: shortURL,
@@ -153,7 +153,7 @@ func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL := s.url.HaveLongURL(value.LongURL, IP)
+	shortURL, comment := s.url.HaveLongURL(value.LongURL, IP)
 
 	tx := JSONLink{
 		ShortURL: shortURL,
@@ -163,6 +163,11 @@ func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	if comment == `DB has short url` {
+		w.WriteHeader(http.StatusConflict)
+		w.Write(txBz)
+		return
+	}
 	w.WriteHeader(http.StatusCreated)
 	w.Write(txBz)
 }
@@ -186,11 +191,16 @@ func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	longURL := string(longURLByte)
 
-	shortURL := s.url.HaveLongURL(longURL, IP)
+	shortURL, comment := s.url.HaveLongURL(longURL, IP)
+
+	if comment == `DB has short url` {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(shortURL))
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
-
 }
 
 func (s *Hand) GetShortenHandler(w http.ResponseWriter, r *http.Request) {

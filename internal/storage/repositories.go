@@ -31,9 +31,9 @@ func Iter() *URLStorage {
 	}
 }
 
-func (u *URLStorage) ShortenDBLink(longURL string) string {
+func (u *URLStorage) ShortenDBLink(longURL string) (string, string) {
 
-	val := u.getShortURL(longURL)
+	val, comment := u.getShortURL(longURL)
 
 	BaseURLNew := u.BaseURL
 
@@ -43,7 +43,7 @@ func (u *URLStorage) ShortenDBLink(longURL string) string {
 
 	if val != "" {
 		shortURL := BaseURLNew + "/" + val
-		return shortURL
+		return shortURL, comment
 	}
 
 	//Сокращение URL
@@ -55,7 +55,7 @@ func (u *URLStorage) ShortenDBLink(longURL string) string {
 
 	u.Inc(longURL, newID, "")
 
-	return shortURL
+	return shortURL, comment
 
 }
 
@@ -107,14 +107,14 @@ func (u *URLStorage) randSeq(longURL string) string {
 	return string(newID)
 }
 
-func (u *URLStorage) getShortURL(longURL string) string {
+func (u *URLStorage) getShortURL(longURL string) (string, string) {
 	u.mutex.RLock()
 	val, ok := u.Urls[longURL]
 	defer u.mutex.RUnlock()
 	if ok {
-		return val
+		return val, `DB has short url`
 	}
-	return ""
+	return "", `DB doesn't have short url`
 }
 
 func (u *URLStorage) Inc(longURL, newID, IP string) {
@@ -137,11 +137,11 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 		defer db.Close(context.Background())
 
 		_, err = db.Exec(ctx,
-			`insert into long_short_urls 
-				select 
-				    $1 long_url,
-					$2 short_url,
-					$3 id_short_url
+			`insert into long_short_urls (long_url, short_url, id_short_url)
+					select 
+						$1 long_url,
+						$2 short_url,
+						$3 id_short_url
 				;`, longURL, u.BaseURL+"/"+newID, newID)
 		if err != nil {
 			log.Fatal("create: ", err)
@@ -149,9 +149,9 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 	}
 }
 
-func (u *URLStorage) HaveLongURL(longURL, IP string) string {
+func (u *URLStorage) HaveLongURL(longURL, IP string) (string, string) {
 
-	val := u.getShortURL(longURL)
+	val, comment := u.getShortURL(longURL)
 
 	BaseURLNew := u.BaseURL
 
@@ -159,9 +159,10 @@ func (u *URLStorage) HaveLongURL(longURL, IP string) string {
 		BaseURLNew = BaseURLNew[:len(BaseURLNew)-1]
 	}
 
+	// Проверка ошибки
 	if val != "" {
 		shortURL := BaseURLNew + "/" + val
-		return shortURL
+		return shortURL, comment
 	}
 
 	//Сокращение URL
@@ -172,7 +173,7 @@ func (u *URLStorage) HaveLongURL(longURL, IP string) string {
 	shortURL := BaseURLNew + "/" + newID
 	u.Inc(longURL, newID, IP)
 
-	return shortURL
+	return shortURL, comment
 
 }
 
