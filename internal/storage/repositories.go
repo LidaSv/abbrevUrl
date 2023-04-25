@@ -3,19 +3,19 @@ package storage
 import (
 	"context"
 	"github.com/jackc/pgx/v5"
+	"github.com/pkg/errors"
 	"log"
 	"math/rand"
 	"strings"
 	"sync"
-	"time"
 )
 
 type URLStorage struct {
-	mutex       sync.RWMutex
-	Urls        map[string]string
-	IPUrls      map[string][]string
-	BaseURL     string
-	DatabaseDsn string
+	mutex   sync.RWMutex
+	Urls    map[string]string
+	IPUrls  map[string][]string
+	BaseURL string
+	LocalDB *pgx.Conn
 }
 
 type AllJSONGet struct {
@@ -31,9 +31,13 @@ func Iter() *URLStorage {
 	}
 }
 
-func (u *URLStorage) ShortenDBLink(longURL string) (string, string) {
+func (u *URLStorage) DatabaseDsns() *pgx.Conn {
+	return u.LocalDB
+}
 
-	val, comment := u.getShortURL(longURL)
+func (u *URLStorage) ShortenDBLink(longURL string) (string, error) {
+
+	val, err := u.getShortURL(longURL)
 
 	BaseURLNew := u.BaseURL
 
@@ -43,7 +47,7 @@ func (u *URLStorage) ShortenDBLink(longURL string) (string, string) {
 
 	if val != "" {
 		shortURL := BaseURLNew + "/" + val
-		return shortURL, comment
+		return shortURL, err
 	}
 
 	//Сокращение URL
@@ -55,12 +59,8 @@ func (u *URLStorage) ShortenDBLink(longURL string) (string, string) {
 
 	u.Inc(longURL, newID, "")
 
-	return shortURL, comment
+	return shortURL, err
 
-}
-
-func (u *URLStorage) DatabaseDsns() string {
-	return u.DatabaseDsn
 }
 
 func (u *URLStorage) TakeAllURL(IP string) []AllJSONGet {
@@ -107,14 +107,14 @@ func (u *URLStorage) randSeq(longURL string) string {
 	return string(newID)
 }
 
-func (u *URLStorage) getShortURL(longURL string) (string, string) {
+func (u *URLStorage) getShortURL(longURL string) (string, error) {
 	u.mutex.RLock()
 	val, ok := u.Urls[longURL]
 	defer u.mutex.RUnlock()
 	if ok {
-		return val, `DB has short url`
+		return val, errors.New(`DB has short url`)
 	}
-	return "", `DB doesn't have short url`
+	return "", nil
 }
 
 func (u *URLStorage) Inc(longURL, newID, IP string) {
@@ -125,18 +125,8 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 	//log.Println(u.IPUrls)
 	u.mutex.Unlock()
 
-	if u.DatabaseDsn != "" {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		db, err := pgx.Connect(ctx, u.DatabaseDsn)
-		if err != nil {
-			log.Println("Unable to connect to database:", err)
-			return
-		}
-		defer db.Close(context.Background())
-
-		_, err = db.Exec(ctx,
+	if u.LocalDB != nil {
+		_, err := u.LocalDB.Exec(context.Background(),
 			`insert into long_short_urls (long_url, short_url, id_short_url)
 					select 
 						$1 long_url,
@@ -149,9 +139,9 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 	}
 }
 
-func (u *URLStorage) HaveLongURL(longURL, IP string) (string, string) {
+func (u *URLStorage) HaveLongURL(longURL, IP string) (string, error) {
 
-	val, comment := u.getShortURL(longURL)
+	val, err := u.getShortURL(longURL)
 
 	BaseURLNew := u.BaseURL
 
@@ -162,7 +152,7 @@ func (u *URLStorage) HaveLongURL(longURL, IP string) (string, string) {
 	// Проверка ошибки
 	if val != "" {
 		shortURL := BaseURLNew + "/" + val
-		return shortURL, comment
+		return shortURL, err
 	}
 
 	//Сокращение URL
@@ -173,7 +163,7 @@ func (u *URLStorage) HaveLongURL(longURL, IP string) (string, string) {
 	shortURL := BaseURLNew + "/" + newID
 	u.Inc(longURL, newID, IP)
 
-	return shortURL, comment
+	return shortURL, err
 
 }
 

@@ -22,12 +22,12 @@ const (
 )
 
 type Storage interface {
-	HaveLongURL(string, string) (string, string)
+	HaveLongURL(string, string) (string, error)
 	HaveShortURL(string) string
 	Inc(string, string, string)
 	TakeAllURL(string) []storage.AllJSONGet
-	DatabaseDsns() string
-	ShortenDBLink(string) (string, string)
+	ShortenDBLink(string) (string, error)
+	DatabaseDsns() *pgx.Conn
 }
 
 type Hand struct {
@@ -153,7 +153,7 @@ func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, comment := s.url.HaveLongURL(value.LongURL, IP)
+	shortURL, errLongURL := s.url.HaveLongURL(value.LongURL, IP)
 
 	tx := JSONLink{
 		ShortURL: shortURL,
@@ -163,7 +163,7 @@ func (s *Hand) ShortenJSONLinkHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	if comment == `DB has short url` {
+	if errLongURL != nil {
 		w.WriteHeader(http.StatusConflict)
 		w.Write(txBz)
 		return
@@ -191,9 +191,9 @@ func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	longURL := string(longURLByte)
 
-	shortURL, comment := s.url.HaveLongURL(longURL, IP)
+	shortURL, errLongURL := s.url.HaveLongURL(longURL, IP)
 
-	if comment == `DB has short url` {
+	if errLongURL != nil {
 		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(shortURL))
 		return
@@ -248,16 +248,20 @@ func getCookies(r *http.Request) (string, error) {
 
 func (s *Hand) PingPSQL(w http.ResponseWriter, r *http.Request) {
 
-	DatabaseDsn := s.url.DatabaseDsns()
-	conn, err := pgx.Connect(context.Background(), DatabaseDsn)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Unable to connect to database: %v\n", err)
+	db := s.url.DatabaseDsns()
+
+	if db != nil {
+		err := db.Ping(context.Background())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Unable to connect to database: %v\n", err)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("DB connection"))
 		return
 	}
-	defer conn.Close(context.Background())
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("DB connection"))
-
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprint(w, "Unable to connect to database: db doesn't have url")
 }

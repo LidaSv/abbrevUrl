@@ -38,7 +38,7 @@ func GzipHandle(next http.Handler) http.Handler {
 func ReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	var reader io.Reader
 
-	if r.Header.Get(`Content-Encoding`) == `gzip` {
+	if strings.Contains(r.Header.Get(`Content-Encoding`), `gzip`) {
 		gz, err := gzip.NewReader(r.Body)
 		if err != nil {
 			return nil, err

@@ -53,10 +53,11 @@ func AddServer() {
 
 	dbPath, dbExists := os.LookupEnv("DATABASE_DSN")
 
+	var dbURL string
 	if dbExists {
-		st.DatabaseDsn = dbPath
+		dbURL = dbPath
 	} else {
-		st.DatabaseDsn = *FlagDatabaseDsn
+		dbURL = *FlagDatabaseDsn
 	}
 
 	filePath, fileExist := os.LookupEnv("FILE_STORAGE_PATH")
@@ -68,8 +69,8 @@ func AddServer() {
 		fileName = *FlagFileStoragePath
 	}
 
-	if st.DatabaseDsn != "" {
-		storage.ReadDBCashe(st.DatabaseDsn, st)
+	if dbURL != "" {
+		storage.ReadDBCashe(dbURL, st)
 	} else {
 		storage.ReadCache(fileName, st)
 	}
@@ -124,9 +125,14 @@ func AddServer() {
 		signal.Stop(stop)
 		_ = server.Shutdown(context.Background())
 		storage.WriterCache(fileName, st)
-
+		if st.LocalDB != nil {
+			st.LocalDB.Close(context.Background())
+		}
 	case <-chErrors:
 		_ = server.Shutdown(context.Background())
 		storage.WriterCache(fileName, st)
+		if st.LocalDB != nil {
+			st.LocalDB.Close(context.Background())
+		}
 	}
 }

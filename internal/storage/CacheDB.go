@@ -21,7 +21,8 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
 		log.Fatal("Unable to connect to database:", err)
 		return
 	}
-	defer db.Close(context.Background())
+
+	st.LocalDB = db
 
 	_, err = db.Exec(ctx,
 		`create table if not exists long_short_urls (

@@ -3,7 +3,9 @@ package app
 import (
 	"abbrevUrl/internal/storage"
 	"bytes"
+	"context"
 	"encoding/json"
+	"github.com/jackc/pgx/v5"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -46,7 +48,10 @@ func TestUrlShort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			st := storage.Iter()
 			st.BaseURL = "http://localhost:8080"
-			st.DatabaseDsn = "host=localhost port=6422 user=postgres password=123 dbname=postgres"
+			DatabaseDsn := "host=localhost port=6422 user=postgres password=123 dbname=postgres"
+			db, _ := pgx.Connect(context.Background(), DatabaseDsn)
+			defer db.Close(context.Background())
+			st.LocalDB = db
 			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/", body)
@@ -116,7 +121,10 @@ func TestShortenJSONLinkHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			st := storage.Iter()
 			st.BaseURL = "http://localhost:8080"
-			st.DatabaseDsn = "host=localhost port=6422 user=postgres password=123 dbname=postgres"
+			DatabaseDsn := "host=localhost port=6422 user=postgres password=123 dbname=postgres"
+			db, _ := pgx.Connect(context.Background(), DatabaseDsn)
+			defer db.Close(context.Background())
+			st.LocalDB = db
 			s := HelpHandler(st)
 			body := bytes.NewBuffer([]byte(tt.args.url))
 			request := httptest.NewRequest(http.MethodPost, "/api/shorten", body)
