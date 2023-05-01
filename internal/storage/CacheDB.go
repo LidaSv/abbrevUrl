@@ -29,7 +29,8 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
     			id_long_url serial,
 				long_url varchar(256),
 				short_url varchar(256),
-				id_short_url varchar(32)
+				id_short_url varchar(32),
+    			flg_delete	int
 				);`)
 	if err != nil {
 		log.Fatal("create: ", err)
@@ -56,5 +57,19 @@ func ReadDBCashe(DatabaseDsn string, st *URLStorage) {
 	err = row.Err()
 	if err != nil {
 		log.Fatal("Err: ", err)
+	}
+}
+
+func DeleteDBCashe(st *URLStorage) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	db := st.LocalDB
+
+	_, err := db.Exec(ctx,
+		`delete from long_short_urls
+			where flg_delete = 1;`)
+	if err != nil {
+		log.Fatal("delete: ", err)
 	}
 }

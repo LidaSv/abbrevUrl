@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 	"log"
@@ -122,7 +123,6 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 	u.Urls[longURL] = newID
 	u.Urls[newID] = longURL
 	u.IPUrls[IP] = append(u.IPUrls[IP], u.BaseURL+"/"+newID, longURL)
-	//log.Println(u.IPUrls)
 	u.mutex.Unlock()
 
 	if u.LocalDB != nil {
@@ -167,14 +167,47 @@ func (u *URLStorage) HaveLongURL(longURL, IP string) (string, error) {
 
 }
 
-func (u *URLStorage) HaveShortURL(ID string) string {
+func (u *URLStorage) HaveShortURL(ID string) (string, error) {
 
-	u.mutex.RLock()
-	longURL, ok := u.Urls[ID]
-	u.mutex.RUnlock()
+	if u.LocalDB != nil {
+		type urls struct {
+			longURL   string
+			flgDelete sql.NullInt64
+		}
 
-	if ok {
-		return longURL
+		row, err := u.LocalDB.Query(context.Background(),
+			`SELECT long_url, flg_delete
+				FROM long_short_urls
+				where id_short_url = $1;`, ID)
+		if err != nil {
+			log.Fatal("select: ", err)
+		}
+		defer row.Close()
+		
+		var v urls
+		for row.Next() {
+			err = row.Scan(&v.longURL, &v.flgDelete)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		err = row.Err()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if v.flgDelete.Valid {
+			return v.longURL, errors.New(`this URL delete`)
+		} else {
+			return v.longURL, nil
+		}
+	} else {
+		u.mutex.RLock()
+		longURL, ok := u.Urls[ID]
+		u.mutex.RUnlock()
+		if ok {
+			return longURL, nil
+		}
+		return "Short URL not in memory", nil
 	}
-	return "Short URL not in memory"
 }

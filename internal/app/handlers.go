@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/sync/errgroup"
 	"log"
 	"net/http"
 )
@@ -23,7 +24,7 @@ const (
 
 type Storage interface {
 	HaveLongURL(string, string) (string, error)
-	HaveShortURL(string) string
+	HaveShortURL(string) (string, error)
 	Inc(string, string, string)
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
@@ -51,6 +52,60 @@ type OriginLinksShort struct {
 
 func HelpHandler(url Storage) *Hand {
 	return &Hand{url: url}
+}
+
+type ShortURL string
+
+func (n ShortURL) FlagDelete(db *pgx.Conn) error {
+
+	if db != nil {
+		_, err := db.Exec(context.Background(),
+			`update long_short_urls
+				set flg_delete = 1
+				where short_url = $1
+				;`, n)
+		if err != nil {
+			log.Fatal("update: ", err)
+		}
+	}
+	return nil
+}
+
+func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
+
+	_, err := getCookies(r)
+	if err != nil {
+		fmt.Fprint(w, err)
+		return
+	}
+
+	shortURLByte, err := middleware.ReadBody(w, r)
+	defer r.Body.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(shortURLByte)
+		return
+	}
+
+	g := &errgroup.Group{}
+
+	var t []ShortURL
+	err = json.Unmarshal(shortURLByte, &t)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Fatal("Unmarshal: ", err)
+	}
+	db := s.url.DatabaseDsns()
+
+	for _, shortURL := range t {
+		g.Go(func() error {
+			return shortURL.FlagDelete(db)
+		})
+	}
+
+	g.Wait()
+
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
@@ -213,12 +268,19 @@ func (s *Hand) GetShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	longURL := s.url.HaveShortURL(newID)
+	longURL, err := s.url.HaveShortURL(newID)
+	if err != nil {
+		w.Header().Set(typeLocation, longURL)
+		http.Redirect(w, r, longURL, http.StatusGone)
+		w.Write([]byte(longURL))
+		return
+	}
 
 	if longURL == "Short URL not in memory" {
 		w.Header().Set(typeLocation, longURL)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(longURL))
+		return
 	}
 
 	w.Header().Set(typeLocation, longURL)

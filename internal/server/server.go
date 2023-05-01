@@ -84,6 +84,7 @@ func AddServer() {
 		r.Get("/{id:[0-9a-z]+}", s.GetShortenHandler)
 		r.Get("/api/user/urls", s.AllJSONGetShortenHandler)
 		r.Get("/ping", s.PingPSQL)
+		r.Delete("/api/user/urls", s.DeleteShortLink)
 	})
 
 	serverPath, serverExists := os.LookupEnv("SERVER_ADDRESS")
@@ -126,12 +127,14 @@ func AddServer() {
 		_ = server.Shutdown(context.Background())
 		storage.WriterCache(fileName, st)
 		if st.LocalDB != nil {
+			storage.DeleteDBCashe(st)
 			st.LocalDB.Close(context.Background())
 		}
 	case <-chErrors:
 		_ = server.Shutdown(context.Background())
 		storage.WriterCache(fileName, st)
 		if st.LocalDB != nil {
+			storage.DeleteDBCashe(st)
 			st.LocalDB.Close(context.Background())
 		}
 	}
