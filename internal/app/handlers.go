@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-	"golang.org/x/sync/errgroup"
 	"log"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -54,22 +54,22 @@ func HelpHandler(url Storage) *Hand {
 	return &Hand{url: url}
 }
 
-type ShortURL string
+type ShortURL []string
 
-func (n ShortURL) FlagDelete(db *pgx.Conn) error {
-
-	if db != nil {
-		_, err := db.Exec(context.Background(),
-			`update long_short_urls
-				set flg_delete = 1
-				where short_url = $1
-				;`, n)
-		if err != nil {
-			log.Fatal("update: ", err)
-		}
-	}
-	return nil
-}
+//func (n ShortURL) FlagDelete(db *pgx.Conn) error {
+//
+//	if db != nil {
+//		_, err := db.Exec(context.Background(),
+//			`update long_short_urls
+//				set flg_delete = 1
+//				where short_url = $1
+//				;`, n)
+//		if err != nil {
+//			log.Fatal("update: ", err)
+//		}
+//	}
+//	return nil
+//}
 
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
@@ -87,9 +87,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g := &errgroup.Group{}
-
-	var t []ShortURL
+	var t ShortURL
 	err = json.Unmarshal(shortURLByte, &t)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -97,13 +95,18 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 	db := s.url.DatabaseDsns()
 
-	for _, shortURL := range t {
-		g.Go(func() error {
-			return shortURL.FlagDelete(db)
-		})
-	}
+	param := "{" + strings.Join(t, ",") + "}"
 
-	g.Wait()
+	if db != nil {
+		_, err := db.Exec(context.Background(),
+			`update long_short_urls
+						set flg_delete = 1
+						where short_url = any($1)
+						;`, param)
+		if err != nil {
+			log.Fatal("update: ", err)
+		}
+	}
 
 	w.WriteHeader(http.StatusAccepted)
 }
