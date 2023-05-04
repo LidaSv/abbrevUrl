@@ -29,7 +29,7 @@ type Storage interface {
 	Inc(string, string, string)
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
-	DatabaseDsns() *pgx.Conn
+	DatabaseDsns(string) *pgx.Conn
 }
 
 type Hand struct {
@@ -57,21 +57,6 @@ func HelpHandler(url Storage) *Hand {
 
 type ShortURL []string
 
-//func (n ShortURL) FlagDelete(db *pgx.Conn) error {
-//
-//	if db != nil {
-//		_, err := db.Exec(context.Background(),
-//			`update long_short_urls
-//				set flg_delete = 1
-//				where short_url = $1
-//				;`, n)
-//		if err != nil {
-//			log.Fatal("update: ", err)
-//		}
-//	}
-//	return nil
-//}
-
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 	_, err := getCookies(r)
@@ -94,9 +79,8 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal("Unmarshal: ", err)
 	}
-	db := s.url.DatabaseDsns()
-
 	param := "{" + strings.Join(t, ",") + "}"
+	db := s.url.DatabaseDsns(param)
 
 	if db != nil {
 		_, err := db.Exec(context.Background(),
@@ -109,7 +93,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	time.AfterFunc(30*time.Second, func() {
+	time.AfterFunc(10*time.Second, func() {
 		_, err := db.Exec(context.Background(),
 			`delete from long_short_urls
 					 where flg_delete = 1;`)
@@ -323,7 +307,7 @@ func getCookies(r *http.Request) (string, error) {
 
 func (s *Hand) PingPSQL(w http.ResponseWriter, r *http.Request) {
 
-	db := s.url.DatabaseDsns()
+	db := s.url.DatabaseDsns("")
 
 	if db != nil {
 		err := db.Ping(context.Background())
