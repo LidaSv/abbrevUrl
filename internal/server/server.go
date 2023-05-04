@@ -103,12 +103,12 @@ func AddServer() {
 		ServerAdd = ServerAdd[:len(ServerAdd)-1]
 	}
 
-	server := http.Server{
+	server := &http.Server{
 		Addr:              ServerAdd,
 		Handler:           r,
 		ReadHeaderTimeout: time.Second,
+		IdleTimeout:       time.Second,
 	}
-	defer server.Close()
 
 	chErrors := make(chan error)
 
@@ -120,19 +120,25 @@ func AddServer() {
 	}()
 
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	signal.Notify(stop, os.Interrupt) //, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
 	case <-stop:
 		signal.Stop(stop)
-		_ = server.Shutdown(context.Background())
+		err = server.Shutdown(context.Background())
+		if err != nil {
+			log.Fatal(err)
+		}
 		storage.WriterCache(fileName, st)
 		if st.LocalDB != nil {
 			storage.DeleteDBCashe(st)
 			st.LocalDB.Close(context.Background())
 		}
 	case <-chErrors:
-		_ = server.Shutdown(context.Background())
+		err = server.Shutdown(context.Background())
+		if err != nil {
+			log.Fatal(err)
+		}
 		storage.WriterCache(fileName, st)
 		if st.LocalDB != nil {
 			storage.DeleteDBCashe(st)
