@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"compress/gzip"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -54,8 +55,10 @@ func ReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	longURLByte, err := io.ReadAll(reader)
 	defer r.Body.Close()
 	if err != nil || len(longURLByte) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return []byte("Incorrect URL"), err
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New("incorrect URL")
 	}
 	return longURLByte, nil
 }

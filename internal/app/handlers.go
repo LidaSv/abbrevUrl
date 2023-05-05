@@ -232,6 +232,7 @@ func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	IP, err := getCookies(r)
 	if err != nil {
 		fmt.Fprint(w, err)
+		log.Print("getCookies: ", err)
 		return
 	}
 
@@ -239,7 +240,7 @@ func (s *Hand) ShortenLinkHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write(longURLByte)
+		fmt.Fprint(w, err)
 		return
 	}
 
