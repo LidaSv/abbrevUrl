@@ -107,7 +107,9 @@ func AddServer() {
 		Addr:              ServerAdd,
 		Handler:           r,
 		ReadHeaderTimeout: time.Second,
-		IdleTimeout:       time.Second,
+		ReadTimeout:       time.Duration(5) * time.Second,
+		WriteTimeout:      time.Duration(5) * time.Second,
+		IdleTimeout:       time.Duration(5) * time.Second,
 	}
 
 	chErrors := make(chan error)
