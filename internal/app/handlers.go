@@ -59,6 +59,9 @@ type ShortURL []string
 
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
+	//workersCount := 10
+	//done := make(chan bool)
+
 	_, err := getCookies(r)
 	if err != nil {
 		fmt.Fprint(w, err)
