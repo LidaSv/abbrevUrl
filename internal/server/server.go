@@ -122,7 +122,7 @@ func AddServer() {
 	}()
 
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt) //, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(stop, os.Interrupt)
 
 	select {
 	case <-stop:
