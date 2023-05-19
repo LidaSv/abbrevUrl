@@ -42,6 +42,12 @@ func CookieHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate;")
 
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("panic occurred:", err)
+			}
+		}()
+
 		name := "clientCookie"
 		cookie, err := r.Cookie(name)
 
