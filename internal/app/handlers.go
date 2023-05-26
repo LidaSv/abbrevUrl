@@ -94,10 +94,10 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if db != nil {
-		time.AfterFunc(time.Second, func() {
+		time.AfterFunc(20*time.Millisecond, func() {
 			_, err := db.Exec(context.Background(),
 				`delete from long_short_urls
-					 where flg_delete = 1;`)
+					  where flg_delete = 1;`)
 			if err != nil {
 				log.Fatal("delete: ", err)
 			}
