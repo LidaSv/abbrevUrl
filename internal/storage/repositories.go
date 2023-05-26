@@ -129,10 +129,7 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 	if u.LocalDB != nil {
 		_, err := u.LocalDB.Exec(context.Background(),
 			`insert into long_short_urls (long_url, short_url, id_short_url)
-					select 
-						$1 long_url,
-						$2 short_url,
-						$3 id_short_url
+					values ($1, $2, $3)
 				;`, longURL, u.BaseURL+"/"+newID, newID)
 		if err != nil {
 			log.Fatal("insert inc: ", err)
