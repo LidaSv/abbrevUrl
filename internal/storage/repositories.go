@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 	"log"
 	"math/rand"
@@ -15,7 +15,7 @@ type URLStorage struct {
 	Urls       map[string]string
 	IPUrls     map[string][]string
 	BaseURL    string
-	LocalDB    *pgx.Conn
+	LocalDB    *pgxpool.Pool
 	DeleteURLs string
 }
 
@@ -32,7 +32,7 @@ func Iter() *URLStorage {
 	}
 }
 
-func (u *URLStorage) DatabaseDsns(p string) *pgx.Conn {
+func (u *URLStorage) DatabaseDsns(p string) *pgxpool.Pool {
 	u.DeleteURLs = p
 	return u.LocalDB
 }

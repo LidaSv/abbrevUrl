@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
 	"strings"
@@ -29,7 +29,7 @@ type Storage interface {
 	Inc(string, string, string)
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
-	DatabaseDsns(string) *pgx.Conn
+	DatabaseDsns(string) *pgxpool.Pool
 }
 
 type Hand struct {
@@ -58,9 +58,6 @@ func HelpHandler(url Storage) *Hand {
 type ShortURL []string
 
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
-
-	//workersCount := 10
-	//done := make(chan bool)
 
 	_, err := getCookies(r)
 	if err != nil {
