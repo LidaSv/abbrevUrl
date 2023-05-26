@@ -135,7 +135,7 @@ func (u *URLStorage) Inc(longURL, newID, IP string) {
 						$3 id_short_url
 				;`, longURL, u.BaseURL+"/"+newID, newID)
 		if err != nil {
-			log.Fatal("create: ", err)
+			log.Fatal("insert inc: ", err)
 		}
 	}
 }
