@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -103,41 +104,39 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("Unmarshal: ", err)
 	}
 	//log.Print(t[1])
-	//param := "{" + strings.Join(t, ",") + "}"
+	param := "{" + strings.Join(t, ",") + "}"
 	db := s.url.DatabaseDsns(t[0])
 
-	//ch := make(chan string)
-	//ch <- param
-	c := make(chan string)
-	go func() {
-		for i := range t {
-			c <- t[i]
-		}
-		close(c)
-	}()
-
-	v := Merge(c)
+	//c := make(chan string)
+	//go func() {
+	//	for i := range t {
+	//		c <- t[i]
+	//	}
+	//	close(c)
+	//}()
+	//
+	//v := Merge(c)
 
 	if db != nil {
-		for i := range v {
-			_, err := db.Exec(context.Background(),
-				`update long_short_urls
+		//for i := range v {
+		_, err := db.Exec(context.Background(),
+			`update long_short_urls
 				 set flg_delete = 1
-				 where short_url = $1
-				 ;`, i)
-			if err != nil {
-				log.Fatal("update: ", err)
-			}
-			time.AfterFunc(time.Second, func() {
-				_, err := db.Exec(context.Background(),
-					`delete from long_short_urls
-					  where flg_delete = 1;`)
-				if err != nil {
-					log.Fatal("delete: ", err)
-				}
-			})
-			//close(ch)
+				 where short_url = any($1)
+				 ;`, param)
+		if err != nil {
+			log.Fatal("update: ", err)
 		}
+		time.AfterFunc(time.Second, func() {
+			_, err := db.Exec(context.Background(),
+				`delete from long_short_urls
+					  where flg_delete = 1;`)
+			if err != nil {
+				log.Fatal("delete: ", err)
+			}
+		})
+		//close(ch)
+		//}
 	}
 
 	//if db != nil {
