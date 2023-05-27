@@ -105,7 +105,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 	//log.Print(t[1])
 	param := "{" + strings.Join(t, ",") + "}"
-	db := s.url.DatabaseDsns(t[0])
+	db := s.url.DatabaseDsns(param) //(t[0])
 
 	//c := make(chan string)
 	//go func() {
@@ -117,37 +117,29 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	//
 	//v := Merge(c)
 
-	if db != nil {
-		//for i := range v {
-		_, err := db.Exec(context.Background(),
-			`update long_short_urls
+	if db == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("нет коннекта с БД"))
+	}
+	//for i := range v {
+	_, err = db.Exec(context.Background(),
+		`update long_short_urls
 				 set flg_delete = 1
 				 where short_url = any($1)
 				 ;`, param)
-		if err != nil {
-			log.Fatal("update: ", err)
-		}
-		time.AfterFunc(time.Second, func() {
-			_, err := db.Exec(context.Background(),
-				`delete from long_short_urls
-					  where flg_delete = 1;`)
-			if err != nil {
-				log.Fatal("delete: ", err)
-			}
-		})
-		//close(ch)
-		//}
+	if err != nil {
+		log.Fatal("update: ", err)
 	}
 
-	//if db != nil {
-	//	time.AfterFunc(20*time.Millisecond, func() {
-	//		_, err := db.Exec(context.Background(),
-	//			`delete from long_short_urls
-	//				  where flg_delete = 1;`)
-	//		if err != nil {
-	//			log.Fatal("delete: ", err)
-	//		}
-	//	})
+	time.AfterFunc(1*time.Second, func() {
+		_, err := db.Exec(context.Background(),
+			`delete from long_short_urls
+					  where flg_delete = 1;`)
+		if err != nil {
+			log.Fatal("delete: ", err)
+		}
+	})
+	//close(ch)
 	//}
 
 	w.WriteHeader(http.StatusAccepted)
