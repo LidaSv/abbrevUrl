@@ -354,6 +354,108 @@ type ShortURL []string
 //	}
 //}
 
+//func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
+//	_, err := getCookies(r)
+//	if err != nil {
+//		fmt.Fprint(w, err)
+//		return
+//	}
+//
+//	shortURLByte, err := middleware.ReadBody(w, r)
+//	defer r.Body.Close()
+//	if err != nil {
+//		w.WriteHeader(http.StatusBadRequest)
+//		w.Write(shortURLByte)
+//		return
+//	}
+//
+//	var t ShortURL
+//	err = json.Unmarshal(shortURLByte, &t)
+//	if err != nil {
+//		w.WriteHeader(http.StatusBadRequest)
+//		log.Fatal("Unmarshal: ", err)
+//	}
+//
+//	db := s.url.DatabaseDsns(t[0])
+//
+//	if db == nil {
+//		w.WriteHeader(http.StatusBadRequest)
+//		w.Write([]byte("нет коннекта с БД"))
+//		return
+//	}
+//
+//	resultCh := make(chan error, len(t))
+//
+//	numWorkers := 10
+//
+//	var wg sync.WaitGroup
+//	wg.Add(numWorkers)
+//
+//	ctx, cancel := context.WithCancel(context.Background())
+//	defer cancel()
+//
+//	groupSize := 50
+//	for i := 0; i < numWorkers; i++ {
+//		go func() {
+//			defer wg.Done()
+//
+//			for i := 0; i < len(t); i += groupSize {
+//				end := i + groupSize
+//				if end > len(t) {
+//					end = len(t)
+//				}
+//
+//				group := t[i:end]
+//
+//				param := "{" + strings.Join(group, ",") + "}"
+//
+//				_, err := db.Exec(ctx, "update long_short_urls set flg_delete = 1 where short_url = any($1)", param)
+//				if err != nil {
+//					resultCh <- err
+//					return
+//				}
+//			}
+//		}()
+//	}
+//
+//	deleteTicker := time.NewTicker(3 * time.Second)
+//	defer deleteTicker.Stop()
+//
+//	go func() {
+//		for {
+//			select {
+//			case <-ctx.Done():
+//				return
+//			case <-deleteTicker.C:
+//				deleteErr := deleteFromDB(ctx, db)
+//				if deleteErr != nil {
+//					log.Fatal("delete: ", deleteErr)
+//				}
+//			}
+//		}
+//	}()
+//
+//	wg.Wait()
+//
+//	deleteErr := deleteFromDB(ctx, db)
+//	if deleteErr != nil {
+//		log.Fatal("delete: ", deleteErr)
+//	}
+//
+//	w.WriteHeader(http.StatusAccepted)
+//}
+
+//func deleteFromDB(ctx context.Context, db *pgxpool.Pool) error {
+//	conn, err := db.Acquire(ctx)
+//	if err != nil {
+//		return err
+//	}
+//	defer conn.Release()
+//
+//	_, err = conn.Exec(ctx, "delete from long_short_urls where flg_delete = 1")
+//	return err
+//}
+
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	_, err := getCookies(r)
 	if err != nil {
@@ -399,6 +501,13 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			defer wg.Done()
 
+			conn, err := db.Acquire(ctx)
+			if err != nil {
+				resultCh <- err
+				return
+			}
+			defer conn.Release()
+
 			for i := 0; i < len(t); i += groupSize {
 				end := i + groupSize
 				if end > len(t) {
@@ -409,7 +518,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 				param := "{" + strings.Join(group, ",") + "}"
 
-				_, err := db.Exec(ctx, "update long_short_urls set flg_delete = 1 where short_url = any($1)", param)
+				_, err := conn.Exec(ctx, "update long_short_urls set flg_delete = 1 where short_url = any($1)", param)
 				if err != nil {
 					resultCh <- err
 					return
@@ -427,33 +536,28 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 			case <-ctx.Done():
 				return
 			case <-deleteTicker.C:
-				deleteErr := deleteFromDB(ctx, db)
-				if deleteErr != nil {
-					log.Fatal("delete: ", deleteErr)
-				}
+				go deleteFromDB(ctx, db)
 			}
 		}
 	}()
 
 	wg.Wait()
-
-	deleteErr := deleteFromDB(ctx, db)
-	if deleteErr != nil {
-		log.Fatal("delete: ", deleteErr)
-	}
+	deleteFromDB(ctx, db)
 
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func deleteFromDB(ctx context.Context, db *pgxpool.Pool) error {
+func deleteFromDB(ctx context.Context, db *pgxpool.Pool) {
 	conn, err := db.Acquire(ctx)
 	if err != nil {
-		return err
+		log.Fatal("acquire: ", err)
 	}
 	defer conn.Release()
 
 	_, err = conn.Exec(ctx, "delete from long_short_urls where flg_delete = 1")
-	return err
+	if err != nil {
+		log.Fatal("delete: ", err)
+	}
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
