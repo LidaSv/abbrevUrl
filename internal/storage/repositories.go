@@ -32,6 +32,12 @@ func Iter() *URLStorage {
 	}
 }
 
+func (u *URLStorage) DeleteFromDB(ctx context.Context) error {
+	_, err := u.LocalDB.Exec(ctx,
+		`delete from long_short_urls where flg_delete = 1`)
+	return err
+}
+
 func (u *URLStorage) DatabaseDsns(p string) *pgxpool.Pool {
 	u.DeleteURLs = p
 	return u.LocalDB

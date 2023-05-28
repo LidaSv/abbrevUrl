@@ -31,6 +31,7 @@ type Storage interface {
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
 	DatabaseDsns(string) *pgxpool.Pool
+	DeleteFromDB(context.Context) error
 }
 
 type Hand struct {
@@ -127,7 +128,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				deleteErr := deleteFromDB(ctx, db)
+				deleteErr := s.url.DeleteFromDB(ctx)
 				if deleteErr != nil {
 					log.Fatal("delete: ", deleteErr)
 				}
@@ -135,7 +136,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 				if updateErr != nil {
 					log.Fatal("update: ", updateErr)
 				}
-				deleteErr := deleteFromDB(ctx, db)
+				deleteErr := s.url.DeleteFromDB(ctx)
 				if deleteErr != nil {
 					log.Fatal("delete: ", deleteErr)
 				}
@@ -144,16 +145,6 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	w.WriteHeader(http.StatusAccepted)
-}
-
-func deleteFromDB(ctx context.Context, db *pgxpool.Pool) error {
-	conn, err := db.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = conn.Exec(ctx,
-		`delete from long_short_urls where flg_delete = 1`)
-	return err
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
