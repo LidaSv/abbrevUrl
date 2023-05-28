@@ -120,7 +120,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 		param := "{" + strings.Join(group, ",") + "}"
 
-		_, err := db.Exec(r.Context(), "update long_short_urls set flg_delete = 1 where short_url = any(%s)", param)
+		_, err := db.Exec(r.Context(), "update long_short_urls set flg_delete = 1 where short_url = any($1)", param)
 		if err != nil {
 			log.Println("update:", err)
 		}
