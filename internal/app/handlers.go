@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
@@ -114,65 +113,54 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	//_, err = db.Exec(ctx,
-	//	`update long_short_urls
-	//			 set flg_delete = 1
-	//			 where short_url = any($1)
-	//			 ;`, param)
-	//if err != nil {
-	//	log.Fatal("update: ", err)
-	//}
+	resultCh := make(chan error, len(t))
 
-	//pool := db.(*pgxpool.Pool)
+	numWorkers := 10
 
-	batch := &pgx.Batch{}
+	var wg sync.WaitGroup
+	wg.Add(numWorkers)
 
-	for _, value := range t {
-		batch.Queue(
-			`update long_short_urls 
-					set flg_delete = 1 
-					where short_url = $1`, value)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer wg.Done()
+
+			for value := range t {
+				_, err := db.Exec(ctx,
+					`update long_short_urls 
+							set flg_delete = 1 
+							where short_url = $1`, value)
+				if err != nil {
+					resultCh <- err
+					return
+				}
+			}
+		}()
 	}
 
-	results := db.SendBatch(ctx, batch)
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
 
-	for i := 0; i < len(t); i++ {
-		_, err := results.Exec()
+	for err := range resultCh {
 		if err != nil {
 			log.Fatal("update: ", err)
 		}
 	}
 
-	results.Close()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			log.Println("context canceled")
-			return
-		case <-time.After(1 * time.Second):
-			_, err := db.Exec(context.Background(),
-				`delete from long_short_urls
-					  where flg_delete = 1;`)
-			if err != nil {
-				log.Fatal("delete: ", err)
-			}
+		time.Sleep(1 * time.Second)
+
+		_, err := db.Exec(ctx,
+			`delete from long_short_urls 
+					where flg_delete = 1`)
+		if err != nil {
+			log.Fatal("delete: ", err)
 		}
 	}()
-
-	wg.Wait()
-	//go time.AfterFunc(1*time.Second, func() {
-	//	_, err := db.Exec(context.Background(),
-	//		`delete from long_short_urls
-	//				  where flg_delete = 1;`)
-	//	if err != nil {
-	//		log.Fatal("delete: ", err)
-	//	}
-	//})
 
 	w.WriteHeader(http.StatusAccepted)
 }
