@@ -59,7 +59,6 @@ func HelpHandler(url Storage) *Hand {
 type ShortURL []string
 
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
-
 	_, err := getCookies(r)
 	if err != nil {
 		fmt.Fprint(w, err)
@@ -91,19 +90,21 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resultCh := make(chan error, len(t))
-	numWorkers := 8
+	numWorkers := 10
 
 	var wg sync.WaitGroup
 	wg.Add(numWorkers)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
 
 	for i := 0; i < numWorkers; i++ {
 		go func() {
 			defer wg.Done()
 			for _, value := range t {
-				_, err := db.Exec(ctx, "update long_short_urls set flg_delete = 1 where short_url = $1", value)
+				_, err := db.Exec(ctx,
+					`update long_short_urls 
+						set flg_delete = 1 
+						where short_url = $1`, value)
 				if err != nil {
 					resultCh <- err
 					return
@@ -117,25 +118,38 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		close(resultCh)
 	}()
 
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
-
 	go func() {
-		for range ticker.C {
-			_, err := db.Exec(ctx, "delete from long_short_urls where flg_delete = 1")
-			if err != nil {
-				log.Fatal("delete: ", err)
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				deleteErr := deleteFromDB(ctx, db)
+				if deleteErr != nil {
+					log.Fatal("delete: ", deleteErr)
+				}
+			case updateErr := <-resultCh:
+				if updateErr != nil {
+					log.Fatal("update: ", updateErr)
+				}
+				deleteErr := deleteFromDB(ctx, db)
+				if deleteErr != nil {
+					log.Fatal("delete: ", deleteErr)
+				}
 			}
 		}
 	}()
 
-	for err := range resultCh {
-		if err != nil {
-			log.Fatal("update: ", err)
-		}
-	}
-
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func deleteFromDB(ctx context.Context, db *pgxpool.Pool) error {
+	_, err := db.Exec(ctx,
+		`delete from long_short_urls where flg_delete = 1`)
+	return err
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
