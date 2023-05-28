@@ -58,29 +58,6 @@ func HelpHandler(url Storage) *Hand {
 
 type ShortURL []string
 
-func Merge(cs ...<-chan string) <-chan string {
-	var wg sync.WaitGroup
-	out := make(chan string)
-
-	send := func(c <-chan string) {
-		for n := range c {
-			out <- n
-		}
-		wg.Done()
-	}
-
-	wg.Add(len(cs))
-	for _, c := range cs {
-		go send(c)
-	}
-
-	go func() {
-		wg.Wait()
-		close(out)
-	}()
-	return out
-}
-
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 	_, err := getCookies(r)
@@ -114,8 +91,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resultCh := make(chan error, len(t))
-
-	numWorkers := 10
+	numWorkers := 8
 
 	var wg sync.WaitGroup
 	wg.Add(numWorkers)
@@ -126,12 +102,8 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < numWorkers; i++ {
 		go func() {
 			defer wg.Done()
-
-			for value := range t {
-				_, err := db.Exec(ctx,
-					`update long_short_urls 
-							set flg_delete = 1 
-							where short_url = $1`, value)
+			for _, value := range t {
+				_, err := db.Exec(ctx, "update long_short_urls set flg_delete = 1 where short_url = $1", value)
 				if err != nil {
 					resultCh <- err
 					return
@@ -145,22 +117,23 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		close(resultCh)
 	}()
 
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	go func() {
+		for range ticker.C {
+			_, err := db.Exec(ctx, "delete from long_short_urls where flg_delete = 1")
+			if err != nil {
+				log.Fatal("delete: ", err)
+			}
+		}
+	}()
+
 	for err := range resultCh {
 		if err != nil {
 			log.Fatal("update: ", err)
 		}
 	}
-
-	go func() {
-		time.Sleep(1 * time.Second)
-
-		_, err := db.Exec(ctx,
-			`delete from long_short_urls 
-					where flg_delete = 1`)
-		if err != nil {
-			log.Fatal("delete: ", err)
-		}
-	}()
 
 	w.WriteHeader(http.StatusAccepted)
 }
