@@ -100,7 +100,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 			case <-deleteSignal:
 				return
 			case <-ticker.C:
-				err := deleteFromDB(r.Context(), db)
+				err := deleteFromDB(context.Background(), db)
 				if err != nil {
 					log.Println("delete:", err)
 				}
@@ -126,7 +126,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 			param := "{" + strings.Join(group, ",") + "}"
 
-			_, err := db.Exec(r.Context(), "update long_short_urls set flg_delete = 1 where short_url = any($1)", param)
+			_, err := db.Exec(context.Background(), "update long_short_urls set flg_delete = 1 where short_url = any($1)", param)
 			if err != nil {
 				log.Println("update:", err)
 			}
@@ -140,7 +140,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	deleteSignal <- struct{}{}
 	<-deleteSignal
 
-	err = deleteFromDB(r.Context(), db)
+	err = deleteFromDB(context.Background(), db)
 	if err != nil {
 		log.Println("final delete:", err)
 	}
