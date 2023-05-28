@@ -32,8 +32,8 @@ func Iter() *URLStorage {
 	}
 }
 
-func (u *URLStorage) DeleteFromDB(ctx context.Context, db *pgxpool.Pool) error {
-	conn, err := db.Acquire(ctx)
+func (u *URLStorage) DeleteFromDB(ctx context.Context) error {
+	conn, err := u.LocalDB.Acquire(ctx)
 	if err != nil {
 		return err
 	}

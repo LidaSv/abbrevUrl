@@ -12,7 +12,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -31,7 +30,7 @@ type Storage interface {
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
 	DatabaseDsns(string) *pgxpool.Pool
-	DeleteFromDB(context.Context, *pgxpool.Pool) error
+	DeleteFromDB(context.Context) error
 }
 
 type Hand struct {
@@ -81,51 +80,16 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("Unmarshal: ", err)
 	}
 
-	param := "{" + strings.Join(t, ",") + "}"
-	//db := s.url.DatabaseDsns(param)
-	dbUpdate := s.url.DatabaseDsns(param)
-	dbDelete := s.url.DatabaseDsns(param) // Создаем отдельный пул подключений для операции удаления
-
-	if dbUpdate == nil || dbDelete == nil {
+	//param := "{" + strings.Join(t, ",") + "}"
+	db := s.url.DatabaseDsns(t[0])
+	if db == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("нет коннекта с БД"))
 		return
 	}
 
-	//if db == nil {
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	w.Write([]byte("нет коннекта с БД"))
-	//	return
-	//}
-
-	resultCh := make(chan error, len(t))
-	numWorkers := 10
-
-	var wg sync.WaitGroup
-	wg.Add(numWorkers)
-
-	ctx := context.Background()
-
-	for i := 0; i < numWorkers; i++ {
-		go func() {
-			defer wg.Done()
-			for _, value := range t {
-				_, err := dbUpdate.Exec(ctx,
-					`update long_short_urls 
-						set flg_delete = 1 
-						where short_url = $1`, value)
-				if err != nil {
-					resultCh <- err
-					return
-				}
-			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(resultCh)
-	}()
+	deleteCtx, cancelDelete := context.WithCancel(context.Background())
+	defer cancelDelete()
 
 	go func() {
 		ticker := time.NewTicker(3 * time.Second)
@@ -133,26 +97,47 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 		for {
 			select {
-			case <-ctx.Done():
+			case <-deleteCtx.Done():
 				return
 			case <-ticker.C:
-				deleteErr := s.url.DeleteFromDB(ctx, dbDelete)
-				if deleteErr != nil {
-					log.Fatal("delete: ", deleteErr)
-				}
-			case updateErr := <-resultCh:
-				if updateErr != nil {
-					log.Fatal("update: ", updateErr)
-				}
-				deleteErr := s.url.DeleteFromDB(ctx, dbDelete)
-				if deleteErr != nil {
-					log.Fatal("delete: ", deleteErr)
+				err := deleteFromDB(deleteCtx, db)
+				if err != nil {
+					log.Println("delete:", err)
 				}
 			}
 		}
 	}()
 
+	groupSize := 50
+
+	for i := 0; i < len(t); i += groupSize {
+		end := i + groupSize
+		if end > len(t) {
+			end = len(t)
+		}
+
+		group := t[i:end]
+
+		param := "{" + strings.Join(group, ",") + "}"
+
+		_, err := db.Exec(r.Context(), "update long_short_urls set flg_delete = 1 where short_url = any(%s)", param)
+		if err != nil {
+			log.Println("update:", err)
+		}
+	}
+
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func deleteFromDB(ctx context.Context, db *pgxpool.Pool) error {
+	conn, err := db.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(ctx, "delete from long_short_urls where flg_delete = 1")
+	return err
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
