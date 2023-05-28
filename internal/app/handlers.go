@@ -103,26 +103,18 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Fatal("Unmarshal: ", err)
 	}
-	//log.Print(t[1])
-	param := "{" + strings.Join(t, ",") + "}"
-	db := s.url.DatabaseDsns(param) //(t[0])
 
-	//c := make(chan string)
-	//go func() {
-	//	for i := range t {
-	//		c <- t[i]
-	//	}
-	//	close(c)
-	//}()
-	//
-	//v := Merge(c)
+	param := "{" + strings.Join(t, ",") + "}"
+	db := s.url.DatabaseDsns(param)
 
 	if db == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("нет коннекта с БД"))
+		return
 	}
-	//for i := range v {
-	_, err = db.Exec(context.Background(),
+
+	ctx := r.Context()
+	_, err = db.Exec(ctx,
 		`update long_short_urls
 				 set flg_delete = 1
 				 where short_url = any($1)
@@ -131,16 +123,33 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("update: ", err)
 	}
 
-	time.AfterFunc(1*time.Second, func() {
-		_, err := db.Exec(context.Background(),
-			`delete from long_short_urls
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		select {
+		case <-ctx.Done():
+			log.Println("context canceled")
+			return
+		case <-time.After(1 * time.Second):
+			_, err := db.Exec(context.Background(),
+				`delete from long_short_urls
 					  where flg_delete = 1;`)
-		if err != nil {
-			log.Fatal("delete: ", err)
+			if err != nil {
+				log.Fatal("delete: ", err)
+			}
 		}
-	})
-	//close(ch)
-	//}
+	}()
+
+	wg.Wait()
+	//go time.AfterFunc(1*time.Second, func() {
+	//	_, err := db.Exec(context.Background(),
+	//		`delete from long_short_urls
+	//				  where flg_delete = 1;`)
+	//	if err != nil {
+	//		log.Fatal("delete: ", err)
+	//	}
+	//})
 
 	w.WriteHeader(http.StatusAccepted)
 }
