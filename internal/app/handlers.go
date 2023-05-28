@@ -597,11 +597,6 @@ type ShortURL []string
 //}
 
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
-	_, err := getCookies(r)
-	if err != nil {
-		fmt.Fprint(w, err)
-		return
-	}
 
 	shortURLByte, err := middleware.ReadBody(w, r)
 	defer r.Body.Close()
