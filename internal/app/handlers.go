@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -80,16 +81,15 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("Unmarshal: ", err)
 	}
 
-	//param := "{" + strings.Join(t, ",") + "}"
-	db := s.url.DatabaseDsns(t[0])
+	param := "{" + strings.Join(t, ",") + "}"
+	db := s.url.DatabaseDsns(param)
 	if db == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("нет коннекта с БД"))
 		return
 	}
 
-	deleteCtx, cancelDelete := context.WithCancel(context.Background())
-	defer cancelDelete()
+	deleteSignal := make(chan struct{}, 1)
 
 	go func() {
 		ticker := time.NewTicker(3 * time.Second)
@@ -97,10 +97,10 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 		for {
 			select {
-			case <-deleteCtx.Done():
+			case <-deleteSignal:
 				return
 			case <-ticker.C:
-				err := deleteFromDB(deleteCtx, db)
+				err := deleteFromDB(r.Context(), db)
 				if err != nil {
 					log.Println("delete:", err)
 				}
@@ -110,6 +110,9 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 	groupSize := 50
 
+	var wg sync.WaitGroup
+	wg.Add(len(t))
+
 	for i := 0; i < len(t); i += groupSize {
 		end := i + groupSize
 		if end > len(t) {
@@ -118,12 +121,28 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 		group := t[i:end]
 
-		param := "{" + strings.Join(group, ",") + "}"
+		go func(group ShortURL) {
+			defer wg.Done()
 
-		_, err := db.Exec(r.Context(), "update long_short_urls set flg_delete = 1 where short_url = any($1)", param)
-		if err != nil {
-			log.Println("update:", err)
-		}
+			param := "{" + strings.Join(group, ",") + "}"
+
+			_, err := db.Exec(r.Context(), "update long_short_urls set flg_delete = 1 where short_url = any($1)", param)
+			if err != nil {
+				log.Println("update:", err)
+			}
+
+			deleteSignal <- struct{}{}
+		}(group)
+	}
+
+	wg.Wait()
+
+	deleteSignal <- struct{}{}
+	<-deleteSignal
+
+	err = deleteFromDB(r.Context(), db)
+	if err != nil {
+		log.Println("final delete:", err)
 	}
 
 	w.WriteHeader(http.StatusAccepted)

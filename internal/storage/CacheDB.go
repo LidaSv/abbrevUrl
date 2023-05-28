@@ -70,6 +70,6 @@ func DeleteDBCashe(st *URLStorage) {
 		`delete from long_short_urls
 			where flg_delete = 1;`)
 	if err != nil {
-		log.Fatal("delete: ", err)
+		log.Fatal("delete DeleteDBCashe: ", err)
 	}
 }
