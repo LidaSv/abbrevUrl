@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
@@ -114,14 +115,36 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	_, err = db.Exec(ctx,
-		`update long_short_urls
-				 set flg_delete = 1
-				 where short_url = any($1)
-				 ;`, param)
-	if err != nil {
-		log.Fatal("update: ", err)
+	//_, err = db.Exec(ctx,
+	//	`update long_short_urls
+	//			 set flg_delete = 1
+	//			 where short_url = any($1)
+	//			 ;`, param)
+	//if err != nil {
+	//	log.Fatal("update: ", err)
+	//}
+
+	//pool := db.(*pgxpool.Pool)
+
+	batch := &pgx.Batch{}
+
+	for _, value := range t {
+		batch.Queue(
+			`update long_short_urls 
+					set flg_delete = 1 
+					where short_url = $1`, value)
 	}
+
+	results := db.SendBatch(ctx, batch)
+
+	for i := 0; i < len(t); i++ {
+		_, err := results.Exec()
+		if err != nil {
+			log.Fatal("update: ", err)
+		}
+	}
+
+	results.Close()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
