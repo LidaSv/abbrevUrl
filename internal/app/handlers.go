@@ -147,7 +147,11 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteFromDB(ctx context.Context, db *pgxpool.Pool) error {
-	_, err := db.Exec(ctx,
+	conn, err := db.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = conn.Exec(ctx,
 		`delete from long_short_urls where flg_delete = 1`)
 	return err
 }
