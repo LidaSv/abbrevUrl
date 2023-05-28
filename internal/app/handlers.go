@@ -31,7 +31,7 @@ type Storage interface {
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
 	DatabaseDsns(string) *pgxpool.Pool
-	DeleteFromDB(context.Context) error
+	DeleteFromDB(context.Context, *pgxpool.Pool) error
 }
 
 type Hand struct {
@@ -82,13 +82,21 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	param := "{" + strings.Join(t, ",") + "}"
-	db := s.url.DatabaseDsns(param)
+	//db := s.url.DatabaseDsns(param)
+	dbUpdate := s.url.DatabaseDsns(param)
+	dbDelete := s.url.DatabaseDsns(param) // Создаем отдельный пул подключений для операции удаления
 
-	if db == nil {
+	if dbUpdate == nil || dbDelete == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("нет коннекта с БД"))
 		return
 	}
+
+	//if db == nil {
+	//	w.WriteHeader(http.StatusBadRequest)
+	//	w.Write([]byte("нет коннекта с БД"))
+	//	return
+	//}
 
 	resultCh := make(chan error, len(t))
 	numWorkers := 10
@@ -102,7 +110,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			defer wg.Done()
 			for _, value := range t {
-				_, err := db.Exec(ctx,
+				_, err := dbUpdate.Exec(ctx,
 					`update long_short_urls 
 						set flg_delete = 1 
 						where short_url = $1`, value)
@@ -128,7 +136,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				deleteErr := s.url.DeleteFromDB(ctx)
+				deleteErr := s.url.DeleteFromDB(ctx, dbDelete)
 				if deleteErr != nil {
 					log.Fatal("delete: ", deleteErr)
 				}
@@ -136,7 +144,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 				if updateErr != nil {
 					log.Fatal("update: ", updateErr)
 				}
-				deleteErr := s.url.DeleteFromDB(ctx)
+				deleteErr := s.url.DeleteFromDB(ctx, dbDelete)
 				if deleteErr != nil {
 					log.Fatal("delete: ", deleteErr)
 				}
