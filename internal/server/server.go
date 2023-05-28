@@ -21,7 +21,7 @@ type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"./tmp/cache"`
-	DatabaseDsn     string `env:"DATABASE_DSN" envDefault:"host=localhost port=6422 user=postgres password=123 dbname=postgres"`
+	DatabaseDsn     string `env:"DATABASE_DSN"`
 	//envDefault:"host=localhost port=6422 user=postgres password=123 dbname=postgres"
 }
 
