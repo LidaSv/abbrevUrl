@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"strings"
 	"sync"
+	"time"
 )
 
 type URLStorage struct {
@@ -32,17 +33,23 @@ func Iter() *URLStorage {
 	}
 }
 
-func (u *URLStorage) DeleteFromDB(ctx context.Context) error {
-	conn, err := u.LocalDB.Acquire(ctx)
+func (u *URLStorage) DeleteFromDB(t []string) {
+	time.Sleep(time.Second)
+	_, err := u.LocalDB.Exec(context.Background(),
+		`delete from long_short_urls
+			 where flg_delete = 1;`)
 	if err != nil {
-		return err
+		log.Fatal("delete: ", err)
 	}
-	defer conn.Release()
 
-	_, err = conn.Exec(ctx,
-		`delete from long_short_urls where flg_delete = 1`)
-	return err
+	for _, value := range t {
+		replacer := strings.NewReplacer(u.BaseURL+"/", "")
+		repl := replacer.Replace(value)
 
+		u.mutex.RLock()
+		delete(u.Urls, repl)
+		u.mutex.RUnlock()
+	}
 }
 
 func (u *URLStorage) DatabaseDsns(p string) *pgxpool.Pool {

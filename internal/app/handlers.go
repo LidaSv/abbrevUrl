@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 )
 
 const (
@@ -31,7 +30,7 @@ type Storage interface {
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
 	DatabaseDsns(string) *pgxpool.Pool
-	DeleteFromDB(context.Context) error
+	DeleteFromDB([]string)
 }
 
 type Hand struct {
@@ -106,13 +105,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 
-	time.Sleep(time.Second)
-	_, err = db.Exec(context.Background(),
-		`delete from long_short_urls
-			 where flg_delete = 1 or short_url = any($1);`, param)
-	if err != nil {
-		log.Fatal("delete: ", err)
-	}
+	s.url.DeleteFromDB(t)
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
