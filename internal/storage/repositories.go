@@ -195,7 +195,7 @@ func (u *URLStorage) HaveShortURL(ID string) (string, error) {
 	u.mutex.RUnlock()
 	if ok {
 		u.mutexDelete.RLock()
-		_, ok := u.Urls[ID]
+		_, ok := u.DeleteURLs[ID]
 		u.mutexDelete.RUnlock()
 		if ok {
 			return "", errors.New(`this URL delete`)
