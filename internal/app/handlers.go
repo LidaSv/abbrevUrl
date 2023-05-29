@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -472,25 +473,32 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("db is nil")
 	}
 
-	_, err = db.Exec(context.Background(),
-		`update long_short_urls
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		_, err = db.Exec(context.Background(),
+			`update long_short_urls
 				 set flg_delete = 1
 				 where short_url = any($1)
 				 ;`, param)
-	if err != nil {
-		log.Fatal("update: ", err)
-	}
-
-	time.AfterFunc(5*time.Second, func() {
-		_, err := db.Exec(context.Background(),
-			`delete from long_short_urls
-					 where flg_delete = 1;`)
 		if err != nil {
-			log.Fatal("delete: ", err)
+			log.Fatal("update: ", err)
 		}
-	})
+		wg.Done()
+	}()
+
+	wg.Wait()
 
 	w.WriteHeader(http.StatusAccepted)
+
+	time.Sleep(3 * time.Second)
+	_, err = db.Exec(context.Background(),
+		`delete from long_short_urls
+					 where flg_delete = 1;`)
+	if err != nil {
+		log.Fatal("delete: ", err)
+	}
 }
 
 //func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
