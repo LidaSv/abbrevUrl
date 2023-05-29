@@ -492,7 +492,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(time.Second)
 	_, err = db.Exec(context.Background(),
 		`delete from long_short_urls
 					 where flg_delete = 1;`)
