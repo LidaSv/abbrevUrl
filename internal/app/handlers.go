@@ -445,52 +445,53 @@ type ShortURL []string
 //}
 
 // Исходник
-//func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
-//
-//	_, err := getCookies(r)
-//	if err != nil {
-//		fmt.Fprint(w, err)
-//		return
-//	}
-//	shortURLByte, err := middleware.ReadBody(w, r)
-//	defer r.Body.Close()
-//	if err != nil {
-//		w.WriteHeader(http.StatusBadRequest)
-//		w.Write(shortURLByte)
-//		return
-//	}
-//	var t ShortURL
-//	err = json.Unmarshal(shortURLByte, &t)
-//	if err != nil {
-//		w.WriteHeader(http.StatusBadRequest)
-//		log.Fatal("Unmarshal: ", err)
-//	}
-//	param := "{" + strings.Join(t, ",") + "}"
-//	db := s.url.DatabaseDsns(param)
-//	if db == nil {
-//		w.WriteHeader(http.StatusBadRequest)
-//		log.Fatal("db is nil")
-//	}
-//	_, err = db.Exec(context.Background(),
-//		`update long_short_urls
-//				 set flg_delete = 1
-//				 where short_url = any($1)
-//				 ;`, param)
-//	if err != nil {
-//		log.Fatal("update: ", err)
-//	}
-//
-//	time.AfterFunc(time.Second, func() {
-//		_, err := db.Exec(context.Background(),
-//			`delete from long_short_urls
-//					 where flg_delete = 1;`)
-//		if err != nil {
-//			log.Fatal("delete: ", err)
-//		}
-//	})
-//
-//	w.WriteHeader(http.StatusAccepted)
-//}
+func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
+
+	_, err := getCookies(r)
+	if err != nil {
+		fmt.Fprint(w, err)
+		return
+	}
+	shortURLByte, err := middleware.ReadBody(w, r)
+	defer r.Body.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(shortURLByte)
+		return
+	}
+	var t ShortURL
+	err = json.Unmarshal(shortURLByte, &t)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Fatal("Unmarshal: ", err)
+	}
+	param := "{" + strings.Join(t, ",") + "}"
+	db := s.url.DatabaseDsns(param)
+	if db == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Fatal("db is nil")
+	}
+
+	_, err = db.Exec(context.Background(),
+		`update long_short_urls
+				 set flg_delete = 1
+				 where short_url = any($1)
+				 ;`, param)
+	if err != nil {
+		log.Fatal("update: ", err)
+	}
+
+	time.AfterFunc(5*time.Second, func() {
+		_, err := db.Exec(context.Background(),
+			`delete from long_short_urls
+					 where flg_delete = 1;`)
+		if err != nil {
+			log.Fatal("delete: ", err)
+		}
+	})
+
+	w.WriteHeader(http.StatusAccepted)
+}
 
 //func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 //	_, err := getCookies(r)
@@ -596,73 +597,73 @@ type ShortURL []string
 //	}
 //}
 
-func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
-
-	shortURLByte, err := middleware.ReadBody(w, r)
-	defer r.Body.Close()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(shortURLByte)
-		return
-	}
-
-	var t ShortURL
-	err = json.Unmarshal(shortURLByte, &t)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Fatal("Unmarshal: ", err)
-	}
-
-	param := "{" + strings.Join(t, ",") + "}"
-	db := s.url.DatabaseDsns(param)
-	if db == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Fatal("db is nil")
-	}
-
-	updateCh := make(chan error)
-	deleteCh := make(chan error)
-
-	// Execute update operation in a goroutine
-	go func() {
-		updateCtx, updateCancel := context.WithCancel(context.Background())
-		defer updateCancel()
-
-		_, updateErr := db.Exec(updateCtx,
-			`update long_short_urls
-set flg_delete = 1
-where short_url = any($1);`, param)
-
-		updateCh <- updateErr
-	}()
-
-	// Execute delete operation after 1 second in a goroutine
-	go func() {
-		time.Sleep(time.Second)
-
-		deleteCtx, deleteCancel := context.WithCancel(context.Background())
-		defer deleteCancel()
-
-		_, deleteErr := db.Exec(deleteCtx,
-			`delete from long_short_urls
-where flg_delete = 1;`)
-
-		deleteCh <- deleteErr
-	}()
-
-	select {
-	case updateErr := <-updateCh:
-		if updateErr != nil {
-			log.Fatal("update: ", updateErr)
-		}
-	case deleteErr := <-deleteCh:
-		if deleteErr != nil {
-			log.Fatal("delete: ", deleteErr)
-		}
-	}
-
-	w.WriteHeader(http.StatusAccepted)
-}
+//func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
+//
+//	shortURLByte, err := middleware.ReadBody(w, r)
+//	defer r.Body.Close()
+//	if err != nil {
+//		w.WriteHeader(http.StatusBadRequest)
+//		w.Write(shortURLByte)
+//		return
+//	}
+//
+//	var t ShortURL
+//	err = json.Unmarshal(shortURLByte, &t)
+//	if err != nil {
+//		w.WriteHeader(http.StatusBadRequest)
+//		log.Fatal("Unmarshal: ", err)
+//	}
+//
+//	param := "{" + strings.Join(t, ",") + "}"
+//	db := s.url.DatabaseDsns(param)
+//	if db == nil {
+//		w.WriteHeader(http.StatusBadRequest)
+//		log.Fatal("db is nil")
+//	}
+//
+//	updateCh := make(chan error)
+//	deleteCh := make(chan error)
+//
+//	// Execute update operation in a goroutine
+//	go func() {
+//		updateCtx, updateCancel := context.WithCancel(context.Background())
+//		defer updateCancel()
+//
+//		_, updateErr := db.Exec(updateCtx,
+//			`update long_short_urls
+//set flg_delete = 1
+//where short_url = any($1);`, param)
+//
+//		updateCh <- updateErr
+//	}()
+//
+//	// Execute delete operation after 1 second in a goroutine
+//	go func() {
+//		time.Sleep(time.Second)
+//
+//		deleteCtx, deleteCancel := context.WithCancel(context.Background())
+//		defer deleteCancel()
+//
+//		_, deleteErr := db.Exec(deleteCtx,
+//			`delete from long_short_urls
+//where flg_delete = 1;`)
+//
+//		deleteCh <- deleteErr
+//	}()
+//
+//	select {
+//	case updateErr := <-updateCh:
+//		if updateErr != nil {
+//			log.Fatal("update: ", updateErr)
+//		}
+//	case deleteErr := <-deleteCh:
+//		if deleteErr != nil {
+//			log.Fatal("delete: ", deleteErr)
+//		}
+//	}
+//
+//	w.WriteHeader(http.StatusAccepted)
+//}
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(typeContentType, bodyContentTypeJSON)
