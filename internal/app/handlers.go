@@ -81,31 +81,31 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 	}
 	param := "{" + strings.Join(t, ",") + "}"
 	db := s.url.DatabaseDsns(param)
-	if db == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Fatal("db is nil")
-	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	if db != nil {
+		var wg sync.WaitGroup
+		wg.Add(1)
 
-	go func() {
-		_, err = db.Exec(context.Background(),
-			`update long_short_urls
+		go func() {
+			_, err = db.Exec(context.Background(),
+				`update long_short_urls
 				 set flg_delete = 1
 				 where short_url = any($1)
 				 ;`, param)
-		if err != nil {
-			log.Fatal("update: ", err)
-		}
-		wg.Done()
-	}()
+			if err != nil {
+				log.Fatal("update: ", err)
+			}
+			wg.Done()
+		}()
 
-	wg.Wait()
+		wg.Wait()
+	}
 
 	w.WriteHeader(http.StatusAccepted)
 
-	s.url.DeleteFromDB()
+	if db != nil {
+		s.url.DeleteFromDB()
+	}
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
