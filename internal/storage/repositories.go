@@ -33,7 +33,7 @@ func Iter() *URLStorage {
 	}
 }
 
-func (u *URLStorage) DeleteFromDB(t []string) {
+func (u *URLStorage) DeleteFromDB() {
 	time.Sleep(time.Second)
 	_, err := u.LocalDB.Exec(context.Background(),
 		`delete from long_short_urls
@@ -41,19 +41,10 @@ func (u *URLStorage) DeleteFromDB(t []string) {
 	if err != nil {
 		log.Fatal("delete: ", err)
 	}
-
-	for _, value := range t {
-		replacer := strings.NewReplacer(u.BaseURL+"/", "")
-		repl := replacer.Replace(value)
-
-		u.mutex.RLock()
-		delete(u.Urls, repl)
-		u.mutex.RUnlock()
-	}
 }
 
 func (u *URLStorage) DatabaseDsns(p string) *pgxpool.Pool {
-	u.DeleteURLs = p
+	u.DeleteURLs += p
 	return u.LocalDB
 }
 

@@ -30,7 +30,7 @@ type Storage interface {
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
 	DatabaseDsns(string) *pgxpool.Pool
-	DeleteFromDB([]string)
+	DeleteFromDB()
 }
 
 type Hand struct {
@@ -105,7 +105,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 
-	s.url.DeleteFromDB(t)
+	s.url.DeleteFromDB()
 }
 
 func (s *Hand) ShortenDBLinkHandler(w http.ResponseWriter, r *http.Request) {
