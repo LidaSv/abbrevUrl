@@ -12,12 +12,13 @@ import (
 )
 
 type URLStorage struct {
-	mutex      sync.RWMutex
-	Urls       map[string]string
-	IPUrls     map[string][]string
-	BaseURL    string
-	LocalDB    *pgxpool.Pool
-	DeleteURLs string
+	mutex       sync.RWMutex
+	Urls        map[string]string
+	IPUrls      map[string][]string
+	BaseURL     string
+	LocalDB     *pgxpool.Pool
+	mutexDelete sync.RWMutex
+	DeleteURLs  map[string]int
 }
 
 type AllJSONGet struct {
@@ -28,8 +29,9 @@ type AllJSONGet struct {
 
 func Iter() *URLStorage {
 	return &URLStorage{
-		Urls:   make(map[string]string),
-		IPUrls: map[string][]string{},
+		Urls:       make(map[string]string),
+		IPUrls:     map[string][]string{},
+		DeleteURLs: make(map[string]int),
 	}
 }
 
@@ -43,8 +45,18 @@ func (u *URLStorage) DeleteFromDB() {
 	}
 }
 
-func (u *URLStorage) DatabaseDsns(p string) *pgxpool.Pool {
-	u.DeleteURLs += p
+func (u *URLStorage) DatabaseDsns(p []string) *pgxpool.Pool {
+	if p == nil {
+		return u.LocalDB
+	}
+	for i, value := range p {
+		replacer := strings.NewReplacer(u.BaseURL+"/", "")
+		repl := replacer.Replace(value)
+		u.mutexDelete.RLock()
+		u.DeleteURLs[repl] = i
+		u.mutexDelete.RUnlock()
+	}
+	//log.Println(u.DeleteURLs)
 	return u.LocalDB
 }
 
@@ -182,8 +194,11 @@ func (u *URLStorage) HaveShortURL(ID string) (string, error) {
 	longURL, ok := u.Urls[ID]
 	u.mutex.RUnlock()
 	if ok {
-		if strings.Contains(u.DeleteURLs, ID) {
-			return longURL, errors.New(`this URL delete`)
+		u.mutexDelete.RLock()
+		_, ok := u.Urls[ID]
+		u.mutexDelete.RUnlock()
+		if ok {
+			return "", errors.New(`this URL delete`)
 		}
 		return longURL, nil
 	}

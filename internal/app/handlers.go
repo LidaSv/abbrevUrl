@@ -29,7 +29,7 @@ type Storage interface {
 	Inc(string, string, string)
 	TakeAllURL(string) []storage.AllJSONGet
 	ShortenDBLink(string) (string, error)
-	DatabaseDsns(string) *pgxpool.Pool
+	DatabaseDsns([]string) *pgxpool.Pool
 	DeleteFromDB()
 }
 
@@ -58,7 +58,6 @@ func HelpHandler(url Storage) *Hand {
 
 type ShortURL []string
 
-// Исходник
 func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 
 	_, err := getCookies(r)
@@ -80,7 +79,7 @@ func (s *Hand) DeleteShortLink(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("Unmarshal: ", err)
 	}
 	param := "{" + strings.Join(t, ",") + "}"
-	db := s.url.DatabaseDsns(param)
+	db := s.url.DatabaseDsns(t)
 
 	if db != nil {
 		var wg sync.WaitGroup
@@ -311,7 +310,7 @@ func getCookies(r *http.Request) (string, error) {
 
 func (s *Hand) PingPSQL(w http.ResponseWriter, r *http.Request) {
 
-	db := s.url.DatabaseDsns("")
+	db := s.url.DatabaseDsns(nil)
 
 	if db != nil {
 		err := db.Ping(context.Background())
